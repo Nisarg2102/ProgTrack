@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>My Leaves — ProgTrack</title>
+    <style>
+        /* Smooth hover effect for leave cards */
+        .leave-card-item {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .leave-card-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 .25rem .5rem rgba(0,0,0,.075) !important;
+        }
+		/* Custom scrollbar for the right side if it gets too long */
+		        .leave-list-container {
+		            flex: 1 1 auto;
+		            height: 0; /* Forces flexbox to perfectly contain the scroll area */
+		            overflow-y: auto;
+		            padding-right: 5px;
+		        }
+        .leave-list-container::-webkit-scrollbar { width: 6px; }
+        .leave-list-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .leave-list-container::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        .leave-list-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    
+		/* Custom scrollbar for the right side... (keep your existing css) */
+
+		/* ── THEME-AWARE HIGHLIGHT ANIMATION (CARDS) ── */
+		@keyframes highlightPulse {
+		    0% { 
+		        transform: scale(1.02); 
+		        box-shadow: 0 0 20px rgba(65, 84, 241, 0.4) !important; 
+		        border-color: #4154f1 !important; 
+		        background-color: rgba(65, 84, 241, 0.05);
+		    }
+		    100% { 
+		        transform: scale(1); 
+		        box-shadow: 0 .25rem .5rem rgba(0,0,0,.075) !important; 
+		        border-color: var(--bs-border-color) !important;
+		        background-color: transparent;
+		    }
+		}
+
+		/* Dark mode adjustment */
+		[data-bs-theme="dark"] .highlight-row {
+		    animation: highlightPulseDark 3s ease-out forwards;
+		}
+		@keyframes highlightPulseDark {
+		    0% { 
+		        transform: scale(1.02); 
+		        box-shadow: 0 0 20px rgba(65, 84, 241, 0.6) !important; 
+		        border-color: #4154f1 !important; 
+		        background-color: rgba(65, 84, 241, 0.15);
+		    }
+		    100% { 
+		        transform: scale(1); 
+		        box-shadow: none !important; 
+		        border-color: var(--bs-border-color) !important;
+		        background-color: transparent;
+		    }
+		}
+
+		.highlight-row {
+		    animation: highlightPulse 3s ease-out forwards;
+		    z-index: 10; /* Keeps the glowing card above others */
+		}
+		
+		</style>
+</head>
+<body>
+<section layout:fragment="content">
+
+  <!-- align-items-stretch ensures both columns grow to the same height -->
+  <div class="row g-4 align-items-stretch">
+    
+    <!-- ========================================== -->
+    <!-- LEFT SIDE: Apply Form & Summary (Stacked)  -->
+    <!-- ========================================== -->
+    <div class="col-xl-4 col-lg-5 d-flex flex-column gap-4">
+        
+      <!-- Apply for Leave Card -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h5 class="card-title fw-bold text-dark mb-4 pb-2 border-bottom">
+            <i class="bi bi-calendar-plus-fill me-2 text-primary"></i>Apply for Leave
+          </h5>
+          
+          <form th:action="@{/leaves/apply}" method="post" class="row g-3">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <!-- Leave Type -->
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary" style="letter-spacing: 0.5px;">Leave Type <span class="text-danger">*</span></label>
+              <select name="type" class="form-select shadow-none bg-light border-0" required>
+                <option value="">-- Select Type --</option>
+                <option value="CASUAL">Casual Leave</option>
+                <option value="SICK">Sick Leave</option>
+                <option value="EARNED">Earned Leave</option>
+                <option value="MATERNITY">Maternity Leave</option>
+                <option value="PATERNITY">Paternity Leave</option>
+                <option value="UNPAID">Unpaid Leave</option>
+                <option value="COMPENSATORY">Compensatory Off</option>
+              </select>
+            </div>
+
+            <!-- From Date (Now Full Width vertically) -->
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary" style="letter-spacing: 0.5px;">Start Date <span class="text-danger">*</span></label>
+              <input type="date" name="startDate" class="form-control shadow-none bg-light border-0" required/>
+            </div>
+            
+            <!-- To Date (Now Full Width vertically) -->
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary" style="letter-spacing: 0.5px;">End Date <span class="text-danger">*</span></label>
+              <input type="date" name="endDate" class="form-control shadow-none bg-light border-0" required/>
+            </div>
+
+            <!-- Reason -->
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary" style="letter-spacing: 0.5px;">Reason</label>
+              <textarea name="reason" class="form-control shadow-none bg-light border-0" rows="3" placeholder="Brief reason for your leave..."></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="col-12 mt-4">
+              <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm py-2">
+                <i class="bi bi-send-fill me-2"></i>Submit Request
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Leave Summary Card (CRASH-PROOF COUNTERS) -->
+      <div class="card border-0 shadow-sm mt-auto">
+        <div class="card-body p-4">
+          <h6 class="card-title fw-bold text-dark mb-3">
+            <i class="bi bi-pie-chart-fill me-2 text-info"></i>Leave Summary
+          </h6>
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="small fw-semibold text-secondary">Total Requests</span>
+            <span class="badge bg-primary rounded-pill px-3" th:text="${leaves != null ? #lists.size(leaves) : 0}">0</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="small fw-semibold text-secondary">Approved</span>
+            <span class="badge bg-success rounded-pill px-3" th:text="${approvedCount != null ? approvedCount : 0}">0</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="small fw-semibold text-secondary">Pending</span>
+            <span class="badge bg-warning text-dark rounded-pill px-3" th:text="${pendingCount != null ? pendingCount : 0}">0</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center py-2">
+            <span class="small fw-semibold text-secondary">Rejected</span>
+            <span class="badge bg-danger rounded-pill px-3" th:text="${rejectedCount != null ? rejectedCount : 0}">0</span>
+          </div>
+		  <!-- NEW CANCELLED ROW (Dynamically Calculated) -->
+		            <div class="d-flex justify-content-between align-items-center py-2">
+		              <span class="small fw-semibold text-secondary">Cancelled</span>
+		              <span class="badge bg-secondary rounded-pill px-3" th:text="${leaves != null ? #lists.size(leaves.?[status != null and status.toString() == 'CANCELLED']) : 0}">0</span>
+		            </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- RIGHT SIDE: Leave Requests History         -->
+    <!-- ========================================== -->
+    <div class="col-xl-8 col-lg-7">
+      <!-- h-100 ensures this card stretches to match the left column height -->
+      <div class="card border-0 shadow-sm h-100 d-flex flex-column">
+        <div class="card-body p-4 d-flex flex-column">
+          
+          <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+              <h5 class="card-title fw-bold text-dark m-0">
+                <i class="bi bi-calendar-check-fill me-2 text-success"></i>My Leave History
+              </h5>
+          </div>
+
+          <!-- Scrollable container for the list -->
+          <div class="leave-list-container flex-grow-1">
+              
+              <!-- Empty State (Null Safe Check) -->
+              <div th:if="${leaves == null or #lists.isEmpty(leaves)}" class="text-center text-muted py-5 my-5">
+                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 80px; height: 80px;">
+                    <i class="bi bi-calendar-x fs-1 text-secondary opacity-50"></i>
+                </div>
+                <h5 class="fw-bold text-dark">No leave requests yet</h5>
+                <p>Apply for your first leave using the form on the left.</p>
+              </div>
+
+              <!-- List of Leaves -->
+              <div th:unless="${leaves == null or #lists.isEmpty(leaves)}">
+                
+                <!-- BULLETPROOF LOOP: Avoids URL Mapping Crashes and Complex Ternary Crashes -->
+				<div th:each="leave : ${leaves}" th:if="${leave != null}"
+				     th:id="'leave-row-' + ${leave.id}"
+				     class="leave-card-item bg-white border rounded-3 p-3 mb-3 position-relative"
+                     th:classappend="${(leave.status != null and leave.status.toString() == 'APPROVED' ? ' border-success border-opacity-50' : '') +
+                                      (leave.status != null and leave.status.toString() == 'REJECTED' ? ' border-danger border-opacity-50' : '') +
+                                      (leave.status != null and leave.status.toString() == 'CANCELLED' ? ' border-secondary border-opacity-50' : '') +
+                                      ((leave.status == null or leave.status.toString() == 'PENDING') ? ' border-warning border-opacity-75' : '')}">
+    
+									  <!-- Decorative left border indicator -->
+									                    <div class="position-absolute top-0 bottom-0 start-0 rounded-start-3" style="width: 5px;"
+									                         th:classappend="${(leave.status != null and leave.status.toString() == 'APPROVED' ? ' bg-success' : '') +
+									                                          (leave.status != null and leave.status.toString() == 'REJECTED' ? ' bg-danger' : '') +
+									                                          (leave.status != null and leave.status.toString() == 'CANCELLED' ? ' bg-secondary' : '') +
+									                                          ((leave.status == null or leave.status.toString() == 'PENDING') ? ' bg-warning' : '')}"></div>
+									      
+									                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 ps-2">
+									                      
+									                      <!-- Left Block: Details -->
+														  <!-- Left Block: Details -->
+														  									                      <!-- ADDED min-width: 0 to prevent flexbox from stretching infinitely -->
+														  									                      <div class="flex-grow-1" style="min-width: 0;">
+														  									                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+														  									                          
+														  									                          <!-- Status Badge -->
+														  									                          <span th:if="${leave.status != null and leave.status.toString() == 'APPROVED'}" class="badge rounded-pill bg-success" style="letter-spacing: 0.5px;">APPROVED</span>
+														  									                          <span th:if="${leave.status != null and leave.status.toString() == 'REJECTED'}" class="badge rounded-pill bg-danger" style="letter-spacing: 0.5px;">REJECTED</span>
+														  									                          <span th:if="${leave.status != null and leave.status.toString() == 'CANCELLED'}" class="badge rounded-pill bg-secondary" style="letter-spacing: 0.5px;">CANCELLED</span>
+														  									                          <span th:if="${leave.status == null or leave.status.toString() == 'PENDING'}" class="badge rounded-pill bg-warning text-dark" style="letter-spacing: 0.5px;">PENDING</span>
+														  									                          
+														  									                          <!-- Type Badge -->
+														  									                          <span class="badge bg-light text-primary border border-primary border-opacity-25" 
+														  									                                th:text="${leave.type != null ? leave.type.toString().replace('_',' ') : 'LEAVE'}">Type</span>
+														  									                          
+														  									                          <!-- Date Range -->
+														  									                          <span class="fw-bold text-dark ms-1" style="font-size: 14.5px;">
+														  									                            <span th:text="${leave.startDate != null ? #temporals.format(leave.startDate,'dd MMM yyyy') : '-'}">-</span> 
+														  									                            <i class="bi bi-arrow-right mx-1 text-muted"></i> 
+														  									                            <span th:text="${leave.endDate != null ? #temporals.format(leave.endDate,'dd MMM yyyy') : '-'}">-</span>
+														  									                            <span class="badge bg-secondary opacity-75 ms-2 rounded-pill"><span th:text="${leave.leaveDays != null ? leave.leaveDays : '1'}">1</span> Day(s)</span>
+														  									                          </span>
+														  									                        </div>
+														  									                        
+														  									                        <!-- Reason -->
+														  									                        <div class="small text-muted d-flex align-items-start mt-2">
+														  									                          <!-- ADDED flex-shrink-0 to icon and text-break to span -->
+														  									                          <i class="bi bi-chat-left-text-fill me-2 mt-1 opacity-50 flex-shrink-0"></i>
+														  									                          <span class="text-break" th:text="${leave.reason != null and !leave.reason.isEmpty() ? leave.reason : 'No reason provided'}">Reason</span>
+														  									                        </div>
+														  									                        
+														  									                        <!-- Lead Comment -->
+														  									                        <!-- ADDED text-break to prevent long lead notes from stretching the box -->
+														  									                        <div class="small mt-2 p-2 bg-light rounded text-dark border-start border-primary border-3 text-break" th:if="${leave.leadComment != null and !leave.leadComment.isEmpty()}">
+														  									                          <i class="bi bi-person-fill-check me-1 text-primary"></i> <strong class="text-primary">Lead Note:</strong> <span th:text="${leave.leadComment}">Comment</span>
+														  									                        </div>
+														  									                      </div>
+									                      
+														  <!-- Right Block: Timestamps & Actions -->
+														                        <div class="d-flex flex-column align-items-end gap-2 flex-shrink-0 ms-md-3">
+														                          
+														                          <!-- Applied Date (Added text-nowrap to prevent 'pm' from breaking) -->
+														                          <div class="text-muted d-flex align-items-center gap-1 text-nowrap" style="font-size: 11px;">
+														                              <i class="bi bi-clock"></i>
+														                              <span th:text="${leave.createdAt != null ? #temporals.format(leave.createdAt,'dd MMM, hh:mm a') : 'Just now'}">Applied Date</span>
+														                          </div>
+														                          
+														                          <!-- Cancel Button Form (Added text-nowrap so text doesn't stack) -->
+														                          <form th:if="${(leave.status == null or leave.status.toString() == 'PENDING') and leave.id != null}" th:action="@{/leaves/cancel/{id}(id=${leave.id})}" method="post" class="m-0" onsubmit="return confirmCancelLeave(event, this);">
+														                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+														                            <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-3 fw-semibold shadow-sm text-nowrap">
+														                              <i class="bi bi-x-circle-fill me-1"></i>Cancel Leave
+														                            </button>
+														                          </form>
+														                        </div>
+									      
+									                    </div>
+                </div>
+                <!-- End Loop -->
+                
+              </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── CUSTOM CONFIRM MODAL ── -->
+    <div class="modal fade" id="customConfirmModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+          <div class="modal-body text-center p-4">
+            <i class="bi bi-question-circle-fill text-danger mb-2 d-inline-block" style="font-size: 3.5rem;"></i>
+            <h5 class="fw-bold text-dark" id="customConfirmTitle">Confirm</h5>
+            <p class="text-muted mb-4" id="customConfirmMessage"></p>
+            <div class="d-flex justify-content-center gap-2">
+              <button type="button" class="btn btn-light text-secondary fw-bold px-4 shadow-sm rounded-pill border" data-bs-dismiss="modal">Go Back</button>
+              <button type="button" class="btn btn-danger fw-bold px-4 shadow-sm rounded-pill" id="customConfirmBtn">Yes, Cancel It</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+  
+</section>
+<th:block layout:fragment="page-scripts">
+	<script>
+	function confirmCancelLeave(event, formElement) {
+	    event.preventDefault(); 
+	    
+	    document.getElementById('customConfirmTitle').textContent = 'Cancel Leave Request?';
+	    document.getElementById('customConfirmMessage').textContent = 'Are you sure you want to cancel this leave request? This action cannot be undone.';
+	    
+	    const confirmBtn = document.getElementById('customConfirmBtn');
+	    const newBtn = confirmBtn.cloneNode(true);
+	    confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+	    
+	    newBtn.addEventListener('click', function() {
+	        bootstrap.Modal.getInstance(document.getElementById('customConfirmModal')).hide();
+	        formElement.submit(); 
+	    });
+	    
+	    new bootstrap.Modal(document.getElementById('customConfirmModal')).show();
+	    return false;
+	}
+	
+	// ── Auto-Highlight specific row from URL parameter ──────────────────────
+    document.addEventListener("DOMContentLoaded", function () {
+	    var urlParams = new URLSearchParams(window.location.search);
+	    var highlightId = urlParams.get('highlight');
+	    
+	    if (highlightId) {
+	        var targetRow = document.getElementById('leave-row-' + highlightId);
+	        if (targetRow) {
+	            // Smooth scroll to the row
+	            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	            
+	            // Trigger the CSS Theme-Aware Animation!
+	            targetRow.classList.add('highlight-row');
+	        }
+	    }
+    });
+	</script>
+</th:block>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Pending Approvals — ProgTrack</title>
+  <style>
+    :root {
+      --admin-primary:   #4154f1;
+      --admin-success:   #22c55e;
+      --admin-warning:   #f59e0b;
+      --admin-danger:    #ef4444;
+      --admin-dark:      #1e293b;
+      --admin-border:    #e2e8f0;
+      --admin-shadow:    0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+      --admin-shadow-lg: 0 8px 32px rgba(65,84,241,.15);
+    }
+
+    .admin-table th { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #64748b; border-bottom: 2px solid var(--admin-border) !important; padding: 12px 16px; background: #f8fafc; }
+    .admin-table td { padding: 12px 16px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
+    .admin-table tr:hover td { background: #f8fafc; }
+
+    .user-avatar {
+      width: 38px; height: 38px; border-radius: 10px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .role-admin    { background: #1e293b; color: #fff; }
+    .role-ceo      { background: #ef4444; color: #fff; }
+    .role-director { background: #f59e0b; color: #fff; }
+    .role-lead  { background: #4154f1; color: #fff; }
+    .role-intern   { background: #22c55e; color: #fff; }
+    .role-unknown  { background: #64748b; color: #fff; }
+
+    .btn-action { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.2s; border: none; }
+    .btn-action i { font-size: 14px; }
+    .btn-review { background: #eef0fe; color: #4154f1; width: auto; padding: 0 12px; font-weight: 600; font-size: 0.8rem; } 
+    .btn-review:hover { background: #4154f1; color: #fff; }
+    .btn-approve { background: #dcfce7; color: #16a34a; } .btn-approve:hover { background: #16a34a; color: #fff; }
+    .btn-reject { background: #fee2e2; color: #dc2626; } .btn-reject:hover { background: #ef4444; color: #fff; }
+
+    /* Modal Profile Styles */
+    .profile-avatar-container { position: relative; width: 100px; height: 100px; margin: 0 auto; }
+    .profile-avatar { width: 100px; height: 100px; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .profile-initial { width: 100px; height: 100px; background: linear-gradient(135deg, #4154f1, #2cb8ff); color: white; font-size: 40px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 4px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
+    /* ── LOCAL DARK MODE OVERRIDES ── */
+    :root[data-theme="dark"] .role-admin { background: #e2e8f0 !important; color: #0f172a !important; }
+    :root[data-theme="dark"] .admin-table th { background: #0f172a !important; border-color: #334155 !important; color: #94a3b8 !important; }
+    :root[data-theme="dark"] .admin-table td { border-color: #334155 !important; }
+    :root[data-theme="dark"] .admin-table tr:hover td { background: #334155 !important; }
+    :root[data-theme="dark"] .card { background-color: #1e293b !important; border-color: #334155 !important; }
+    
+    :root[data-theme="dark"] .btn-review { background: #1e3a8a !important; color: #93c5fd !important; }
+    :root[data-theme="dark"] .btn-review:hover { background: #3b82f6 !important; color: #fff !important; }
+    :root[data-theme="dark"] .btn-approve { background: #064e3b !important; color: #4ade80 !important; }
+    :root[data-theme="dark"] .btn-approve:hover { background: #16a34a !important; color: #fff !important; }
+    :root[data-theme="dark"] .btn-reject { background: #7f1d1d !important; color: #f87171 !important; }
+    :root[data-theme="dark"] .btn-reject:hover { background: #dc2626 !important; color: #fff !important; }
+    
+    :root:not([data-theme="dark"]) .modal-content { background-color: #ffffff !important; }
+    :root[data-theme="dark"] .modal-content { background-color: #1e293b !important; border-color: #334155 !important; }
+  </style>
+</head>
+
+<body>
+<section layout:fragment="content">
+
+	<div class="d-flex justify-content-end align-items-center mb-4">
+	    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">
+	      <i class="bi bi-hourglass-split me-1"></i> <span th:text="${pendingCount ?: 0}">0</span> Pending
+	    </span>
+	  </div>
+
+  <div class="card shadow-sm border-0" style="border-radius: 14px; overflow: hidden;">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table align-middle admin-table mb-0">
+          <thead>
+            <tr>
+              <th class="ps-4">Applicant Details</th>
+              <th class="text-center">Requested Role</th>
+              <th class="text-center">Department</th>
+              <th class="text-center">Registered On</th>
+              <th class="text-center pe-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <th:block th:each="u : ${requestUsers}">
+                <tr th:if="${u != null}">
+                  <td class="ps-4">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="user-avatar"
+                           th:classappend="${u.profilePicture == null or u.profilePicture == ''} ? (${u.role != null ? 'role-' + #strings.toLowerCase(u.role.toString()) : 'role-unknown'}) : ''">
+                           <img th:if="${u.profilePicture != null and u.profilePicture != ''}" th:src="@{'/uploads/' + ${u.profilePicture}}" alt="Profile Picture"/>
+                           <span th:unless="${u.profilePicture != null and u.profilePicture != ''}" th:text="${not #strings.isEmpty(u.fullName) ? #strings.substring(u.fullName,0,1).toUpperCase() : 'U'}">U</span>
+                      </div>
+                      <div style="min-width: 0;">
+                        <div class="fw-bold text-dark text-truncate" style="font-size: 0.9rem;" th:text="${u.fullName ?: 'Unknown Name'}">Name</div>
+                        <div class="text-muted small text-truncate" th:text="${u.email ?: '—'}">email</div>
+                      </div>
+                    </div>
+                  </td>
+                  
+                  <td class="text-center">
+                    <span class="badge px-3 py-2 rounded-pill shadow-sm"
+                          th:classappend="${u.role != null ? 'role-' + #strings.toLowerCase(u.role.toString()) : 'role-unknown'}"
+                          th:text="${u.role ?: 'Unknown'}">ROLE</span>
+                  </td>
+                  
+                  <td class="text-center fw-semibold text-secondary small" th:text="${u.department ?: '—'}">Dept</td>
+                  
+                  <td class="small text-muted fw-semibold text-center">
+                     <span th:if="${u.createdAt != null}"><i class="bi bi-calendar me-1"></i> <span th:text="${#temporals.format(u.createdAt,'dd MMM yyyy')}"></span></span>
+                     <span th:unless="${u.createdAt != null}">—</span>
+                  </td>
+                  
+                  <td class="text-center pe-4">
+                    
+                    <div th:if="${!u.isApproved and u.isActive}" class="d-flex gap-2 justify-content-center">
+                      <button type="button" class="btn-action btn-review" title="Review Profile" data-bs-toggle="modal" th:data-bs-target="|#reviewModal${u.id}|">
+                        <i class="bi bi-search me-1"></i> Review
+                      </button>
+                      <form th:action="@{|/admin/users/approve/${u.id}|}" method="post" class="m-0">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit" class="btn-action btn-approve" title="Quick Approve"><i class="bi bi-check-lg"></i></button>
+                      </form>
+                      <button type="button" class="btn-action btn-reject" title="Reject Request" data-bs-toggle="modal" th:data-bs-target="|#rejectModal${u.id}|"><i class="bi bi-x-lg"></i></button>
+                    </div>
+
+                    <div th:if="${u.isApproved}" class="d-flex justify-content-center">
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-50 px-3 py-2 rounded-pill shadow-sm">
+                            <i class="bi bi-check-circle-fill me-1"></i> Approved
+                        </span>
+                    </div>
+
+                    <div th:if="${!u.isActive}" class="d-flex justify-content-center">
+                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-50 px-3 py-2 rounded-pill shadow-sm">
+                            <i class="bi bi-x-circle-fill me-1"></i> Rejected
+                        </span>
+                    </div>
+
+                  </td>
+                </tr>
+            </th:block>
+            
+            <tr th:if="${requestUsers == null or #lists.isEmpty(requestUsers)}">
+              <td colspan="5" class="text-center text-muted py-5"><i class="bi bi-check-circle fs-1 text-success opacity-50 d-block mb-3"></i><h6 class="fw-bold">No registration history found.</h6></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <th:block th:if="${requestUsers != null}">
+      <div class="modal fade" th:each="u : ${requestUsers}" th:if="${u != null}" th:id="|reviewModal${u.id}|" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+            <div class="modal-header bg-light border-0" style="border-radius: 14px 14px 0 0;">
+              <h6 class="modal-title fw-bold text-dark"><i class="bi bi-person-badge me-2 text-primary"></i>Review Application</h6>
+              <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                
+                <div class="profile-avatar-container mb-3">
+                    <img th:if="${u.profilePicture != null && !u.profilePicture.isEmpty()}" 
+                         th:src="@{'/uploads/' + ${u.profilePicture}}" alt="Profile" class="rounded-circle profile-avatar"/>
+                    <div th:unless="${u.profilePicture != null && !u.profilePicture.isEmpty()}" 
+                         class="rounded-circle profile-initial"
+                         th:text="${u.fullName.substring(0,1).toUpperCase()}">U
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mb-1 text-dark" th:text="${u.fullName}">Name</h4>
+                <p class="text-muted small mb-3" th:text="${u.designation ?: 'No designation specified'}">Designation</p>
+                <span class="badge rounded-pill px-3 py-2 mb-4" th:classappend="${u.role != null ? 'role-' + #strings.toLowerCase(u.role.toString()) : 'role-unknown'}" th:text="${u.role}">ROLE</span>
+
+                <div class="text-start px-3 bg-light rounded-3 p-3">
+                    <div class="d-flex mb-2"><strong class="small text-muted w-25">Email:</strong> <span class="small fw-semibold text-dark" th:text="${u.email}"></span></div>
+                    <div class="d-flex mb-2"><strong class="small text-muted w-25">Phone:</strong> <span class="small fw-semibold text-dark" th:text="${u.phoneNumber ?: '—'}"></span></div>
+                    <div class="d-flex mb-2"><strong class="small text-muted w-25">Dept:</strong> <span class="small fw-semibold text-dark" th:text="${u.department ?: '—'}"></span></div>
+                    <div class="d-flex"><strong class="small text-muted w-25">Group:</strong> <span class="small fw-semibold text-dark" th:text="${u.projectGroup ?: '—'}"></span></div>
+                </div>
+
+            </div>
+            <div class="modal-footer border-0 bg-light p-3" style="border-radius: 0 0 14px 14px;">
+                <div class="d-flex w-100 gap-2">
+                    <button type="button" class="btn btn-outline-danger fw-bold flex-fill" data-bs-toggle="modal" th:data-bs-target="|#rejectModal${u.id}|">Reject</button>
+                    <form th:action="@{|/admin/users/approve/${u.id}|}" method="post" class="flex-fill m-0 d-flex">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit" class="btn btn-success fw-bold w-100">Approve User</button>
+                    </form>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" th:each="u : ${requestUsers}" th:if="${u != null}" th:id="|rejectModal${u.id}|" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+            <div class="modal-header bg-danger text-white border-0" style="border-radius: 14px 14px 0 0;">
+              <h6 class="modal-title fw-bold"><i class="bi bi-x-circle-fill me-2"></i>Reject Application</h6>
+              <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{|/admin/users/reject/${u.id}|}" method="post">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+              <div class="modal-body p-4 text-center">
+                <p class="mb-0 text-muted small">Are you sure you want to reject the registration request for <strong class="text-dark" th:text="${u.fullName}">User</strong>? This will delete their pending profile.</p>
+              </div>
+              <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-light fw-bold border w-100 mb-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger fw-bold w-100 m-0">Confirm Rejection</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+  </th:block>
+
+</section>
+</body>
+</html>

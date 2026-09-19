@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<footer th:fragment="footer" id="footer" class="footer">
+    <div class="copyright">
+        &copy; <span th:text="${#dates.year(#dates.createNow())}">2025</span>
+        <strong><span>3Space Technologies</span></strong>.
+        All Rights Reserved. ProgTrack v1.0
+    </div>
+    <div class="credits">
+        Developed by <a href="#" target="">Bhavik & Sarthak</a> with <i class="bi bi-heart-fill text-danger"></i> using <a href="https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/" target="_blank">NiceAdmin</a>
+    </div>
+</footer>
+</body>
+</html>

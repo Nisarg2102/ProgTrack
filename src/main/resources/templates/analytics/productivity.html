@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Productivity Trends — ProgTrack</title>
+  <style>
+    :root {
+      --admin-primary:   #4154f1;
+      --admin-success:   #22c55e;
+      --admin-warning:   #f59e0b;
+      --admin-info:      #06b6d4;
+      --admin-border:    rgba(150, 150, 150, 0.2);
+      --admin-shadow:    0 1px 3px rgba(0,0,0,.08);
+    }
+    .stat-card {
+      background-color: var(--bs-card-bg); border-radius: 14px; padding: 20px 24px;
+      box-shadow: var(--admin-shadow); border: 1px solid var(--admin-border);
+      transition: transform .2s; height: 100%;
+    }
+    .stat-value { font-size: 2.2rem; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+    .stat-label { font-size: .75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
+    .filter-bar { background-color: var(--bs-card-bg); border-radius: 14px; box-shadow: var(--admin-shadow); border: 1px solid var(--admin-border); padding: 20px; }
+    .chart-card { background-color: var(--bs-card-bg); border-radius: 14px; box-shadow: var(--admin-shadow); border: 1px solid var(--admin-border); }
+  </style>
+</head>
+<body>
+<section layout:fragment="content">
+
+  <div class="filter-bar mb-4 border-top border-4" style="border-top-color: #8b5cf6 !important;">
+    <form th:action="@{/analytics/productivity}" method="get" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small fw-bold text-secondary text-uppercase mb-2" style="letter-spacing: 0.5px;">From Date</label>
+        <input type="date" name="from" class="form-control shadow-none bg-light border-0" style="height: 42px; border-radius: 8px;" th:value="${from}"/>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-bold text-secondary text-uppercase mb-2" style="letter-spacing: 0.5px;">To Date</label>
+        <input type="date" name="to" class="form-control shadow-none bg-light border-0" style="height: 42px; border-radius: 8px;" th:value="${to}"/>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-bold text-secondary text-uppercase mb-2" style="letter-spacing: 0.5px;">Department</label>
+        <select name="department" class="form-select shadow-none bg-light border-0" style="height: 42px; border-radius: 8px;">
+          <option value="">All Departments</option>
+          <th:block th:if="${departments != null}">
+              <option th:each="dept : ${departments}" th:value="${dept}" th:text="${dept}" th:selected="${dept == selectedDept}">Dept</option>
+          </th:block>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary fw-bold shadow-sm flex-grow-1" style="height: 42px; border-radius: 8px;"><i class="bi bi-filter me-2"></i>Apply</button>
+        <a th:href="@{/analytics/productivity}" class="btn btn-light fw-bold border shadow-sm" style="height: 42px; border-radius: 8px; padding-top: 8px;">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card" style="border-top: 4px solid var(--admin-primary);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div><div class="stat-value text-body" th:text="${totalTasks ?: 0}">0</div><div class="stat-label">Total Tasks</div></div>
+          <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;"><i class="bi bi-list-task text-primary fs-4"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card" style="border-top: 4px solid var(--admin-success);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div><div class="stat-value text-body" th:text="${completedTasks ?: 0}">0</div><div class="stat-label">Completed</div></div>
+          <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;"><i class="bi bi-check-circle-fill text-success fs-4"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card" style="border-top: 4px solid var(--admin-warning);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div><div class="stat-value text-body" th:text="${completionRate ?: 0} + '%'">0%</div><div class="stat-label">Completion Rate</div></div>
+          <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;"><i class="bi bi-graph-up-arrow text-warning fs-4"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card" style="border-top: 4px solid var(--admin-info);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div><div class="stat-value text-body" th:text="${totalHoursLogged ?: '0.0'} + 'h'">0h</div><div class="stat-label">Hours Logged</div></div>
+          <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;"><i class="bi bi-clock-fill text-info fs-4"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:none;">
+    <th:block th:if="${dailyTaskCount != null}"><span class="d-data" th:each="entry : ${dailyTaskCount}" th:data-key="${entry.key}" th:data-val="${entry.value}"></span></th:block>
+    <th:block th:if="${statusBreakdown != null}"><span class="s-data" th:each="entry : ${statusBreakdown}" th:data-key="${entry.key}" th:data-val="${entry.value}"></span></th:block>
+    <th:block th:if="${priorityBreakdown != null}"><span class="p-data" th:each="entry : ${priorityBreakdown}" th:data-key="${entry.key}" th:data-val="${entry.value}"></span></th:block>
+    <th:block th:if="${topContributors != null}"><span class="c-data" th:each="entry : ${topContributors}" th:data-key="${entry.key}" th:data-val="${entry.value}"></span></th:block>
+    <th:block th:if="${categoryBreakdown != null}"><span class="cat-data" th:each="entry : ${categoryBreakdown}" th:data-key="${entry.key}" th:data-val="${entry.value}"></span></th:block>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div class="chart-card">
+        <div class="card-body p-4">
+          <h5 class="card-title fw-bold text-body mb-4"><i class="bi bi-activity text-primary me-2"></i>Company Task Trend</h5>
+          <div style="min-height: 250px;"><canvas id="dailyTrendChart" style="max-height: 280px; width: 100%;"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-4">
+      <div class="chart-card h-100 d-flex flex-column">
+        <div class="card-body p-4 d-flex flex-column">
+          <h6 class="card-title fw-bold text-body mb-4"><i class="bi bi-pie-chart-fill text-info me-2"></i>Status Distribution</h6>
+          <div class="flex-grow-1 position-relative"><canvas id="statusChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="chart-card h-100 d-flex flex-column">
+        <div class="card-body p-4 d-flex flex-column">
+          <h6 class="card-title fw-bold text-body mb-4"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Priority Distribution</h6>
+          <div class="flex-grow-1 position-relative"><canvas id="priorityChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="chart-card h-100 d-flex flex-column">
+        <div class="card-body p-4 d-flex flex-column">
+          <h6 class="card-title fw-bold text-body mb-4"><i class="bi bi-tags-fill text-success me-2"></i>Task Categories</h6>
+          <div class="flex-grow-1 position-relative"><canvas id="categoryChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-5">
+    <div class="col-md-6">
+      <div class="chart-card h-100 overflow-hidden d-flex flex-column">
+        <div class="p-4 border-bottom">
+          <h5 class="fw-bold m-0 text-body"><i class="bi bi-trophy me-2 text-warning"></i>Top Contributors</h5>
+        </div>
+        <div class="table-responsive flex-grow-1" style="max-height: 350px; overflow-y: auto;">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+              <tr>
+                <th class="ps-4 text-center text-muted small text-uppercase" style="width: 60px;">#</th>
+                <th class="text-muted small text-uppercase">Employee Name</th>
+                <th class="pe-4 text-center text-muted small text-uppercase">Tasks Completed</th>
+              </tr>
+            </thead>
+            <tbody>
+              <th:block th:if="${topContributors != null and not #maps.isEmpty(topContributors)}">
+                  <tr th:each="entry, s : ${topContributors}">
+                    <td class="ps-4 text-center fw-bold text-muted" th:text="${s.count}">1</td>
+                    <td class="fw-bold text-body" th:text="${entry.key}">Name</td>
+                    <td class="pe-4 text-center"><span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-2" th:text="${entry.value}">0</span></td>
+                  </tr>
+              </th:block>
+              <tr th:if="${topContributors == null or #maps.isEmpty(topContributors)}">
+                <td colspan="3" class="text-center text-muted py-5"><i class="bi bi-inbox fs-2 opacity-25 d-block mb-2"></i>No data available.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="chart-card h-100 overflow-hidden d-flex flex-column">
+        <div class="p-4 border-bottom">
+          <h5 class="fw-bold m-0 text-body"><i class="bi bi-tags me-2 text-info"></i>Category Workload</h5>
+        </div>
+        <div class="table-responsive flex-grow-1" style="max-height: 350px; overflow-y: auto;">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+              <tr>
+                <th class="ps-4 text-muted small text-uppercase">Category Name</th>
+                <th class="text-center text-muted small text-uppercase">Task Count</th>
+                <th class="pe-4 text-muted small text-uppercase" style="width: 40%;">Overall Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              <th:block th:if="${categoryBreakdown != null and not #maps.isEmpty(categoryBreakdown)}">
+                  <tr th:each="entry : ${categoryBreakdown}">
+                    <td class="ps-4 fw-bold text-body" th:text="${entry.key}">Cat</td>
+                    <td class="text-center"><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-3 py-2" th:text="${entry.value}">0</span></td>
+                    <td class="pe-4">
+                      <div class="progress shadow-sm bg-light" style="height: 8px; border-radius: 10px;">
+                        <div class="progress-bar bg-info" style="border-radius: 10px;" th:styleappend="'width:' + (${totalTasks != null and totalTasks > 0 ? (entry.value * 100.0 / totalTasks) : 0}) + '%'"></div>
+                      </div>
+                    </td>
+                  </tr>
+              </th:block>
+              <tr th:if="${categoryBreakdown == null or #maps.isEmpty(categoryBreakdown)}">
+                <td colspan="3" class="text-center text-muted py-5"><i class="bi bi-inbox fs-2 opacity-25 d-block mb-2"></i>No category data available.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<th:block layout:fragment="page-scripts">
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const CHART_COLORS = ['#4154f1','#28a745','#ffc107','#dc3545','#17a2b8','#6f42c1','#fd7e14','#20c997'];
+
+    // 1. Daily trend line
+    const trendCtx = document.getElementById('dailyTrendChart');
+    if(trendCtx) {
+      let lbls = [], vals = [], sum = 0;
+      document.querySelectorAll('.d-data').forEach(pt => { 
+          let val = parseFloat(pt.getAttribute('data-val')) || 0;
+          lbls.push(pt.getAttribute('data-key')); 
+          vals.push(val); 
+          sum += val;
+      });
+      if(sum > 0) {
+        new Chart(trendCtx, {
+          type: 'line',
+          data: { labels: lbls, datasets: [{ label: 'Tasks', data: vals, borderColor: '#4154f1', backgroundColor: 'rgba(65,84,241,0.08)', borderWidth: 2, pointRadius: 4, fill: true, tension: 0.4 }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+        });
+      } else {
+        trendCtx.parentElement.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 opacity-25 d-block mb-3"></i>No trend data available.</div>';
+      }
+    }
+
+    // 2. Status doughnut
+    const statusCtx = document.getElementById('statusChart');
+    if(statusCtx) {
+      let lbls = [], vals = [], sum = 0;
+      document.querySelectorAll('.s-data').forEach(pt => { 
+          let val = parseInt(pt.getAttribute('data-val')) || 0;
+          lbls.push(pt.getAttribute('data-key').replace(/_/g, ' ')); 
+          vals.push(val); 
+          sum += val;
+      });
+      if(sum > 0) {
+        new Chart(statusCtx, { type: 'doughnut', data: { labels: lbls, datasets: [{ data: vals, backgroundColor: CHART_COLORS, borderWidth: 1, borderColor: 'rgba(150,150,150,0.1)' }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom' } } } });
+      } else {
+        statusCtx.parentElement.innerHTML = '<div class="text-center text-muted py-5 mt-4 small"><i class="bi bi-inbox fs-2 opacity-25 d-block mb-2"></i>No status data.</div>';
+      }
+    }
+
+    // 3. Priority bar (Made horizontal for better fit)
+    const priorityCtx = document.getElementById('priorityChart');
+    if(priorityCtx) {
+      let lbls = [], vals = [], colorsArr = [], sum = 0;
+      const pColors = { 'CRITICAL':'#dc3545','HIGH':'#ffc107','MEDIUM':'#4154f1','LOW':'#28a745' };
+      document.querySelectorAll('.p-data').forEach(pt => { 
+          let key = pt.getAttribute('data-key'); 
+          let val = parseInt(pt.getAttribute('data-val')) || 0;
+          lbls.push(key); 
+          vals.push(val); 
+          colorsArr.push(pColors[key] || '#6c757d'); 
+          sum += val;
+      });
+      if(sum > 0) {
+        new Chart(priorityCtx, { type: 'bar', data: { labels: lbls, datasets: [{ data: vals, backgroundColor: colorsArr, borderRadius: 4 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true }, y: { grid: { display: false } } } } });
+      } else {
+        priorityCtx.parentElement.innerHTML = '<div class="text-center text-muted py-5 mt-4 small"><i class="bi bi-inbox fs-2 opacity-25 d-block mb-2"></i>No priority data.</div>';
+      }
+    }
+
+    // 4. Category doughnut
+    const catCtx = document.getElementById('categoryChart');
+    if(catCtx) {
+      let lbls = [], vals = [], sum = 0;
+      document.querySelectorAll('.cat-data').forEach(pt => { 
+          let val = parseInt(pt.getAttribute('data-val')) || 0;
+          lbls.push(pt.getAttribute('data-key')); 
+          vals.push(val); 
+          sum += val;
+      });
+      if(sum > 0) {
+        new Chart(catCtx, { type: 'polarArea', data: { labels: lbls, datasets: [{ data: vals, backgroundColor: CHART_COLORS, borderWidth: 1, borderColor: 'rgba(150,150,150,0.1)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { r: { ticks: { display: false, backdropColor: 'transparent' }, grid: { color: 'rgba(150, 150, 150, 0.1)' }, angleLines: { color: 'rgba(150, 150, 150, 0.1)' } } } } });
+      } else {
+        catCtx.parentElement.innerHTML = '<div class="text-center text-muted py-5 mt-4 small"><i class="bi bi-inbox fs-2 opacity-25 d-block mb-2"></i>No category data.</div>';
+      }
+    }
+});
+</script>
+</th:block>
+</body>
+</html>

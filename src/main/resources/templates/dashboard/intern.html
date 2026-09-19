@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/base}">
+<head><title>My Workspace — ProgTrack</title></head>
+<style>
+	/* Custom Scrollbar for the Task Grid */
+	.custom-scrollbar-wrapper::-webkit-scrollbar {
+	    height: 8px; /* Sleeker profile */
+	}
+	.custom-scrollbar-wrapper::-webkit-scrollbar-track {
+	    background: transparent; /* Removes the ugly white strip in dark mode */
+	}
+	.custom-scrollbar-wrapper::-webkit-scrollbar-thumb {
+	    background-color: rgba(150, 150, 150, 0.4); /* Neutral, semi-transparent thumb */
+	    border-radius: 8px;
+	}
+	.custom-scrollbar-wrapper::-webkit-scrollbar-thumb:hover {
+	    background-color: rgba(150, 150, 150, 0.7);
+	}
+	
+</style>
+<body>
+<section layout:fragment="content">
+
+  <!-- ── KPI CARDS ─────────────────────────────────────────────────────────── -->
+  <div class="row g-4 mb-4">
+
+   <!-- 1. Live Timer Card -->
+    <div class="col-xxl-4 col-md-6">
+      <div class="card h-100 shadow-sm" style="border-left:4px solid #4154f1;">
+        <div class="card-body d-flex flex-column p-4">
+          
+          <h6 class="card-title text-primary mb-2 p-0">
+            <i class="bi bi-stopwatch me-2"></i>Total Time Today
+          </h6>
+          
+          <div class="flex-grow-1 d-flex flex-column justify-content-center">
+            
+            <!-- Main Big Timer: Total Today -->
+            <div id="today-timer"
+                 class="display-5 fw-bold text-primary mb-1"
+                 style="font-variant-numeric:tabular-nums;letter-spacing:2px;">
+              00:00:00
+            </div>
+            
+            <!-- Sub Timer: Current Session -->
+            <small class="text-muted d-block mb-3">
+              Current session: <strong id="session-timer" class="text-dark">00:00:00</strong>
+              <!-- CHANGED: Replaced saved-total-str with saved-base-sec to prevent double counting -->
+              <span id="saved-base-sec" style="display:none;" th:text="${stats['baseOnlineSeconds'] ?: 0}"></span>
+            </small>
+            
+            <div>
+              <div class="progress mb-1" style="height:8px;border-radius:4px;">
+                <div id="day-progress" class="progress-bar bg-primary" role="progressbar" style="width:0%;transition:width 1s linear;"></div>
+              </div>
+              <small class="text-muted fw-semibold">
+                <span id="pct-label">0%</span> of 8h workday goal
+              </small>
+            </div>
+
+          </div> 
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Daily Report Status Card -->
+    <div class="col-xxl-4 col-md-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column p-4">
+          <h6 class="card-title mb-2 p-0"><i class="bi bi-clipboard-data me-2 text-success"></i>Daily Report Status</h6>
+          
+          <!-- State 1: Submitted -->
+          <div th:if="${stats['isTodaySubmitted']}" class="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-center mt-2">
+            <div class="rounded-circle d-flex align-items-center justify-content-center mb-2 shadow-sm"
+                 style="width:65px;height:65px;background:#d1fae5; border: 2px solid #a7f3d0;">
+              <i class="bi bi-check2-all text-success display-6"></i>
+            </div>
+            <h5 class="fw-bold text-success mb-1">Successfully Submitted</h5>
+            <p class="text-muted small mb-0">You logged <strong class="text-dark fs-6" th:text="${stats['todayTaskCount'] ?: 0}">0</strong> task(s) today. Great job!</p>
+          </div>
+
+          <!-- State 2: Pending Submission -->
+          <div th:unless="${stats['isTodaySubmitted']}" class="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-center mt-2">
+            <div class="rounded-circle d-flex align-items-center justify-content-center mb-2 shadow-sm"
+                 style="width:65px;height:65px;background:#fff3cd; border: 2px solid #fde68a;">
+              <i class="bi bi-hourglass-split text-warning display-6" style="color: #d97706 !important;"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">Action Required</h5>
+            <p class="text-muted small mb-0">Please fill out the task grid below to submit your End-of-Day report.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Week Summary Card (Fixed Counters & Labels) -->
+    <div class="col-xxl-4 col-md-12">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column p-4">
+          <h6 class="card-title mb-3 p-0"><i class="bi bi-bar-chart-line me-2 text-info"></i>Weekly Analytics</h6>
+		  <div class="row text-center g-1 flex-grow-1 align-items-center">
+		              
+			<!-- 1. Live Total Weekly Time (Ticking) -->
+			<div class="col-3 border-end">
+			  <div id="week-hrs-online" class="fw-bold fs-5 text-primary" th:text="${stats['weekOnlineHours'] != null ? stats['weekOnlineHours'] + 'h' : '0.00h'}">0.00h</div>
+			  <span id="base-week-hrs" style="display:none;" th:text="${stats['baseWeekOnlineHours'] ?: '0'}"></span>
+			  <small class="text-muted fw-semibold" style="font-size: 10px; text-transform: uppercase;">Total<br>Live Time</small>
+			</div>
+		              
+		              <!-- 2. Manual Task Hours Logged -->
+		              <div class="col-3 border-end">
+		                <div class="fw-bold fs-5" style="color: #6f42c1 !important;" th:text="${stats['weekTaskHours'] != null ? stats['weekTaskHours'] + 'h' : '0.0h'}">0.0h</div>
+		                <small class="text-muted fw-semibold" style="font-size: 10px; text-transform: uppercase;">Task Hrs<br>Logged</small>
+		              </div>
+		              
+		              <!-- 3. Tasks This Week -->
+		              <div class="col-3 border-end">
+		                <div class="fw-bold fs-5 text-secondary" th:text="${stats['weekTaskCount'] ?: 0}">0</div>
+		                <small class="text-muted fw-semibold" style="font-size: 10px; text-transform: uppercase;">Tasks<br>This Wk</small>
+		              </div>
+		              
+		              <!-- 4. Tasks Today -->
+		              <div class="col-3">
+		                <div class="fw-bold fs-5 text-success" th:text="${stats['todayTaskCount'] ?: 0}">0</div>
+		                <small class="text-muted fw-semibold" style="font-size: 10px; text-transform: uppercase;">Tasks<br>Today</small>
+		              </div>
+		              
+		            </div>
+          <div class="mt-3 mt-auto pt-3 border-top">
+            <a th:href="@{/tasks/history}" class="btn btn-sm btn-light text-primary w-100 fw-semibold border">
+              <i class="bi bi-clock-history me-1"></i>View Detailed History
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- End KPI -->
+  
+  <!-- ── REPORT COUNTERS KPI ───────────────────────────────────────────────── -->
+    <div class="row g-4 mb-4">
+      
+      <!-- 1. Daily Reports Submitted -->
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm" style="border-left: 4px solid #198754; background-color: var(--bs-card-bg);">
+          <div class="card-body d-flex align-items-center p-4">
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
+                 style="width: 50px; height: 50px; background-color: rgba(25, 135, 84, 0.15);">
+              <i class="bi bi-calendar-day text-success fs-4"></i>
+            </div>
+            <div>
+              <h6 class="text-muted mb-1 fw-semibold" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                Daily Reports<br>Submitted
+              </h6>
+              <h3 class="fw-bold mb-0 text-body" th:text="${stats['dailyReports'] ?: 0}">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Weekly Reports Submitted -->
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm" style="border-left: 4px solid #0dcaf0; background-color: var(--bs-card-bg);">
+          <div class="card-body d-flex align-items-center p-4">
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
+                 style="width: 50px; height: 50px; background-color: rgba(13, 202, 240, 0.15);">
+              <i class="bi bi-calendar-week text-info fs-4"></i>
+            </div>
+            <div>
+              <h6 class="text-muted mb-1 fw-semibold" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                Weekly Reports<br>Submitted
+              </h6>
+              <h3 class="fw-bold mb-0 text-body" th:text="${stats['weeklyReports'] ?: 0}">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Monthly Reports Submitted -->
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm" style="border-left: 4px solid #6f42c1; background-color: var(--bs-card-bg);">
+          <div class="card-body d-flex align-items-center p-4">
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
+                 style="width: 50px; height: 50px; background-color: rgba(111, 66, 193, 0.15);">
+              <i class="bi bi-calendar-month" style="color: #6f42c1; font-size: 1.5rem;"></i>
+            </div>
+            <div>
+              <h6 class="text-muted mb-1 fw-semibold" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                Monthly Reports<br>Submitted
+              </h6>
+              <h3 class="fw-bold mb-0 text-body" th:text="${stats['monthlyReports'] ?: 0}">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- End Report Counters -->
+
+  <!-- ── TASK ENTRY GRID ──────────────────────────────────────────────────── -->
+  <div class="row mb-1">
+    <div class="col-12">
+      
+      <!-- Sleek Horizontal Success Banner -->
+      <div th:if="${stats['isTodaySubmitted']}" class="card shadow-sm border-0 w-100" style="background-color: #f0fdf4; border: 1px solid #bbf7d0 !important;">
+          <div class="card-body p-4 d-flex align-items-center gap-4">
+            <i class="bi bi-shield-fill-check text-success d-none d-md-block" style="font-size: 3.5rem; line-height: 1;"></i>
+            <div>
+              <h4 class="fw-bold text-success mb-2">Report Locked & Submitted!</h4>
+              <p class="text-muted fs-6 mb-1">
+                Your workday is securely logged. You successfully submitted <strong th:text="${stats['todayTaskCount']}" class="text-dark">0</strong> task(s) today.
+              </p>
+              <p class="text-muted fs-6 mb-0">
+                You can review all your submitted tasks via your <a th:href="@{/tasks/history}" class="fw-bold text-success text-decoration-underline">Full Task History</a>.
+              </p>
+            </div>
+          </div>
+      </div>
+
+      <!-- Task Form Card -->
+      <div th:unless="${stats['isTodaySubmitted']}" class="card shadow-sm">
+        <div class="card-body p-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+            <h5 class="card-title mb-0 p-0">
+              <i class="bi bi-table me-2 text-primary"></i>Daily Task Report —
+              <span class="text-primary fw-bold" th:text="${#temporals.format(today, 'EEEE, dd MMMM yyyy')}">Today</span>
+            </h5>
+            <div class="d-flex gap-2">
+              <a th:href="@{/tasks/history}" class="btn btn-sm btn-outline-secondary fw-semibold">
+                <i class="bi bi-journal-text me-1"></i>My History
+              </a>
+              <a th:href="@{/leaves/my}" class="btn btn-sm btn-outline-warning text-dark fw-semibold">
+                <i class="bi bi-calendar-event me-1"></i>My Leaves
+              </a>
+            </div>
+          </div>
+
+          <!-- ── TASK GRID FORM ─────────────────────────────────────────────── -->
+          <form th:action="@{/tasks/submit-daily}" method="post" id="taskGridForm" novalidate>
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <input type="hidden" name="taskDate" th:value="${today}"/>
+
+            <div class="table-responsive custom-scrollbar-wrapper border rounded" style="border-radius: 8px;">
+              <table class="table table-bordered align-middle mb-0" id="taskGrid"
+                     style="min-width:950px; border-style: hidden;">
+					 <thead class="table-light text-center">
+					   <tr>
+					     <th style="width:40px;" class="border-bottom border-2">#</th>
+					     <th class="text-start border-bottom border-2">Task Description <span class="text-danger">*</span></th>
+					     <th style="width:140px;" class="border-bottom border-2">Category</th>
+					     <th style="width:110px;" class="border-bottom border-2">Hours</th>
+					     <th style="width:150px;" class="border-bottom border-2">Status</th>
+					     <th style="width:120px;" class="border-bottom border-2">Priority</th>
+					     <th style="width:220px;" class="text-start border-bottom border-2">Link / Reference</th>
+					     
+					     <!-- Fix for the sticky right column: Removed hardcoded background and shadow -->
+					     <th style="width:50px; position: sticky; right: 0; z-index: 2;" class="border-bottom border-2 border-start bg-light"></th>
+					   </tr>
+					 </thead>
+                <tbody id="taskRows">
+                  <tr class="task-row" id="row-template">
+                    <td class="text-center text-muted row-num fw-bold bg-light" style="font-size: 14px;">1</td>
+                    <td>
+                      <input type="text" name="taskDescription[]"
+                             class="form-control form-control-sm border-0 shadow-none bg-transparent px-2"
+                             placeholder="What did you work on?" required/>
+                    </td>
+                    <td>
+                      <input type="text" name="taskCategory[]"
+                             class="form-control form-control-sm border-0 shadow-none bg-transparent px-2"
+                             placeholder="Backend, HR, etc."/>
+                    </td>
+                    <td>
+                      <input type="number" name="timeSpent[]" min="0" max="24" step="0.25"
+                             class="form-control form-control-sm border-0 shadow-none bg-transparent px-2"
+                             placeholder="e.g. 2.5"/>
+                    </td>
+                    <td>
+                      <select name="status[]" class="form-select form-select-sm border-0 shadow-none bg-transparent px-2 fw-semibold">
+                        <option value="IN_PROGRESS" class="text-primary">🔵 In Progress</option>
+                        <option value="COMPLETED" class="text-success">✅ Completed</option>
+                        <option value="PENDING" class="text-warning">⏳ Pending</option>
+                        <option value="BLOCKED" class="text-danger">🚫 Blocked</option>
+                        <option value="REVIEW" class="text-info">🔍 In Review</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select name="priority[]" class="form-select form-select-sm border-0 shadow-none bg-transparent px-2">
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM" selected>Medium</option>
+                        <option value="HIGH" class="text-warning fw-bold">High</option>
+                        <option value="CRITICAL" class="text-danger fw-bold">CRITICAL</option>
+                      </select>
+                    </td>
+                    <td>
+                        <input type="url" name="googleDocLink[]"
+                               class="form-control form-control-sm border-0 shadow-none bg-transparent px-2"
+                               placeholder="https://..."/>
+                    </td>
+					<td class="text-center bg-light border-start" style="position: sticky; right: 0; z-index: 1;">
+					  <button type="button" class="btn btn-sm btn-outline-danger remove-row border-0"
+					          style="display:none;" title="Remove this row">
+					    <i class="bi bi-trash3-fill"></i>
+					  </button>
+					</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Grid action bar -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 p-3 bg-light rounded border">
+              <div class="d-flex gap-2 align-items-center">
+                <button type="button" class="btn btn-primary btn-sm fw-semibold shadow-sm px-3" id="addRowBtn">
+                  <i class="bi bi-plus-lg me-1"></i>Add Row
+                </button>
+                <span class="badge bg-secondary ms-2" id="rowCountLabel">1 Row</span>
+              </div>
+              <div class="d-flex gap-2">
+				<button type="button" class="btn btn-white btn-sm text-danger border fw-semibold shadow-sm bg-white px-3" onclick="clearGrid()">
+				              <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Form
+				            </button>
+				            <button type="submit" class="btn btn-success px-4 fw-bold shadow-sm" onclick="return confirmSubmit(event)">
+				              <i class="bi bi-send-check-fill me-2"></i>Submit Final Report
+				            </button>
+              </div>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div><!-- End Task Grid -->
+
+  <!-- ── BOTTOM ROW: LEAVE & RECENT TASKS ────────────────────────────────── -->
+  <div class="row g-4 align-items-stretch">
+    
+    <!-- Apply for Leave -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card border-0 shadow-sm h-100 mb-0">
+        <div class="card-body p-4">
+          <h5 class="card-title mb-4 p-0"><i class="bi bi-calendar-plus me-2 text-warning"></i>Apply for Leave</h5>
+          
+          <form th:action="@{/leaves/apply}" method="post" class="row g-3">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <!-- Leave Type -->
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary" style="letter-spacing: 0.5px;">Leave Type <span class="text-danger">*</span></label>
+              <select name="type" class="form-select shadow-none bg-light border-0" required>
+                <option value="">-- Select Type --</option>
+                <option value="CASUAL">Casual Leave</option>
+                <option value="SICK">Sick Leave</option>
+                <option value="EARNED">Earned Leave</option>
+                <option value="MATERNITY">Maternity Leave</option>
+                <option value="PATERNITY">Paternity Leave</option>
+                <option value="UNPAID">Unpaid Leave</option>
+                <option value="COMPENSATORY">Compensatory Off</option>
+              </select>
+            </div>
+
+            <!-- From Date -->
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary" style="letter-spacing: 0.5px;">Start Date <span class="text-danger">*</span></label>
+              <input type="date" name="startDate" class="form-control shadow-none bg-light border-0" required th:min="${today}"/>
+            </div>
+            
+            <!-- To Date -->
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary" style="letter-spacing: 0.5px;">End Date <span class="text-danger">*</span></label>
+              <input type="date" name="endDate" class="form-control shadow-none bg-light border-0" required th:min="${today}"/>
+            </div>
+
+            <!-- Reason -->
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary" style="letter-spacing: 0.5px;">Reason</label>
+              <textarea name="reason" class="form-control shadow-none bg-light border-0" rows="3" placeholder="Brief reason for your leave..."></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="col-12 mt-4">
+              <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm py-2">
+                <i class="bi bi-send-fill me-2"></i>Submit Request
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent submitted tasks -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card h-100 shadow-sm mb-0">
+        <div class="card-body p-4 d-flex flex-column">
+          <h5 class="card-title mb-4 p-0"><i class="bi bi-list-check me-2 text-success"></i>Today's Submitted Tasks</h5>
+          
+          <!-- Empty State -->
+		  <div th:if="${#lists.isEmpty(stats['todayTasks'])}" class="flex-grow-1 h-100 d-flex flex-column justify-content-center align-items-center text-center text-muted py-5 border rounded bg-light">
+            <i class="bi bi-inbox fs-1 mb-2 text-secondary opacity-50"></i>
+            <p class="mb-0 fw-semibold">No tasks submitted yet today.</p>
+            <small>Fill out the grid above and hit submit to log your work!</small>
+          </div>
+
+          <!-- Populated State -->
+          <div th:unless="${#lists.isEmpty(stats['todayTasks'])}" class="table-responsive rounded border" style="max-height: 450px; overflow-y: auto;">
+            <table class="table table-hover table-bordered mb-0 align-middle">
+              <thead class="table-light text-center" style="position: sticky; top: 0; z-index: 1;">
+                <tr class="text-nowrap">
+                    <th class="text-muted small py-2 px-3">Description</th>
+                    <th class="text-muted small py-2">Category</th>
+                    <th class="text-muted small py-2">Priority</th>
+                    <th class="text-muted small py-2">Hrs</th>
+                    <th class="text-muted small py-2">Status</th>
+                    <th class="text-muted small py-2">Link</th>
+                </tr>
+              </thead>
+              <tbody class="text-center">
+                <tr th:each="task : ${stats['todayTasks']}">
+                  
+                  <!-- Description -->
+				  <td class="small fw-semibold px-3 text-start text-dark" style="max-width: 250px; white-space: normal;">
+				    <th:block th:if="${task.taskDescription != null and #strings.length(task.taskDescription) > 55}">
+				      <span th:text="${#strings.substring(task.taskDescription, 0, 55)} + '...'"></span>
+				      <a th:href="@{|/tasks/history?highlight=${task.id}|}" class="text-primary fw-bold text-decoration-none ms-1" style="font-size: 11px;">Read more</a>
+				    </th:block>
+				    <th:block th:unless="${task.taskDescription != null and #strings.length(task.taskDescription) > 55}">
+				      <span th:text="${task.taskDescription ?: '-'}"></span>
+				    </th:block>
+				  </td>
+                  
+                  <!-- Category -->
+                  <td class="small text-secondary fw-semibold" th:text="${task.taskCategory ?: '-'}">-</td>
+                  
+                  <!-- Priority Badge -->
+                  <td>
+                    <span th:if="${task.priority != null and task.priority.toString() == 'CRITICAL'}" class="badge bg-danger">CRITICAL</span>
+                    <span th:if="${task.priority != null and task.priority.toString() == 'HIGH'}" class="badge bg-warning text-dark">HIGH</span>
+                    <span th:if="${task.priority != null and task.priority.toString() == 'MEDIUM'}" class="badge bg-primary">MEDIUM</span>
+                    <span th:if="${task.priority != null and task.priority.toString() == 'LOW'}" class="badge bg-light text-dark border">LOW</span>
+                    <span th:if="${task.priority == null}" class="badge bg-secondary">-</span>
+                  </td>
+                  
+                  <!-- Hours -->
+                  <td class="small fw-bold text-primary" th:text="${task.timeSpent != null ? task.timeSpent + 'h' : '-'}">-</td>
+                  
+                  <!-- Status Badge -->
+                  <td>
+                    <span th:if="${task.status != null and task.status.toString() == 'COMPLETED'}" class="badge rounded-pill px-3 bg-success">COMPLETED</span>
+                    <span th:if="${task.status != null and task.status.toString() == 'IN_PROGRESS'}" class="badge rounded-pill px-3 bg-primary">IN PROGRESS</span>
+                    <span th:if="${task.status != null and task.status.toString() == 'PENDING'}" class="badge rounded-pill px-3 bg-warning text-dark">PENDING</span>
+                    <span th:if="${task.status != null and task.status.toString() == 'BLOCKED'}" class="badge rounded-pill px-3 bg-danger">BLOCKED</span>
+                    <span th:if="${task.status != null and task.status.toString() == 'REVIEW'}" class="badge rounded-pill px-3 bg-info text-dark">REVIEW</span>
+                    <span th:if="${task.status == null}" class="badge rounded-pill px-3 bg-secondary">-</span>
+                  </td>
+                  
+                  <!-- Link -->
+                  <td>
+                    <a th:if="${task.googleDocLink != null and !task.googleDocLink.isEmpty()}" th:href="${task.googleDocLink}" target="_blank"
+                       class="btn btn-sm btn-light border text-primary shadow-sm rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Open Link">
+                      <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                    <span th:unless="${task.googleDocLink != null and !task.googleDocLink.isEmpty()}" class="text-muted small">—</span>
+                  </td>
+                  
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  </div> <!-- End Bottom Row -->
+
+  
+  <!-- ── CUSTOM ALERT MODAL ── -->
+    <div class="modal fade" id="customAlertModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+          <div class="modal-body text-center p-4">
+            <i class="bi bi-exclamation-triangle-fill text-warning mb-2 d-inline-block" style="font-size: 3.5rem;"></i>
+            <h5 class="fw-bold text-dark" id="customAlertTitle">Alert</h5>
+            <p class="text-muted mb-4" id="customAlertMessage"></p>
+            <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm rounded-pill" data-bs-dismiss="modal">Got it</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CUSTOM CONFIRM MODAL ── -->
+    <div class="modal fade" id="customConfirmModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+          <div class="modal-body text-center p-4">
+            <i class="bi bi-question-circle-fill text-primary mb-2 d-inline-block" style="font-size: 3.5rem;"></i>
+            <h5 class="fw-bold text-dark" id="customConfirmTitle">Confirm</h5>
+            <p class="text-muted mb-4" id="customConfirmMessage"></p>
+            <div class="d-flex justify-content-center gap-2">
+              <button type="button" class="btn btn-light text-secondary fw-bold px-4 shadow-sm rounded-pill border" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary fw-bold px-4 shadow-sm rounded-pill" id="customConfirmBtn">Yes, Proceed</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+  
+</section>
+
+<th:block layout:fragment="page-scripts">
+<script th:inline="javascript">
+// ── Advanced Live & Total Timers ────────────────────────────────────────────
+(function(){
+  const todayTimerEl = document.getElementById('today-timer');
+  const sessionTimerEl = document.getElementById('session-timer');
+  const bar = document.getElementById('day-progress');
+  const pctLbl = document.getElementById('pct-label');
+  
+  // CHANGED: We now fetch the direct integer seconds for "closed" sessions
+  const savedBaseSecStr = document.getElementById('saved-base-sec');
+  
+  const weekHrsEl = document.getElementById('week-hrs-online');
+  const baseWeekHrsStr = document.getElementById('base-week-hrs');
+  
+  if (!todayTimerEl || !sessionTimerEl) return;
+
+  let sessionSec = /*[[${elapsedSeconds ?: 0}]]*/ 0;
+
+  let baseTotalSec = savedBaseSecStr ? (parseInt(savedBaseSecStr.textContent) || 0) : 0;
+  let baseWeekHrs = baseWeekHrsStr ? (parseFloat(baseWeekHrsStr.textContent) || 0) : 0;
+  
+  let totalSec = baseTotalSec + sessionSec;
+
+  function fmt(s){
+    return [Math.floor(s/3600), Math.floor((s%3600)/60), s%60]
+      .map(v=>String(v).padStart(2,'0')).join(':');
+  }
+
+  function tick(){
+    todayTimerEl.textContent = fmt(totalSec);
+    sessionTimerEl.textContent = fmt(sessionSec);
+
+    const pct = Math.min((totalSec / 28800) * 100, 100).toFixed(1);
+    if(bar) bar.style.width = pct + '%';
+    if(pctLbl) pctLbl.textContent = Math.floor(pct) + '%';
+    
+	if(weekHrsEl) {
+	    weekHrsEl.textContent = (baseWeekHrs + (sessionSec / 3600)).toFixed(2) + 'h';
+	}
+  }
+  
+  tick();
+
+  setInterval(()=>{ 
+      sessionSec++; 
+      totalSec = baseTotalSec + sessionSec; 
+      tick(); 
+  }, 1000);
+
+  // CHANGED: Sync active session to DB every 1 minute to prevent time loss
+  setInterval(()=>{
+    fetch('/tasks/api/elapsed-seconds').then(r=>r.json()).then(d=>{
+      if(d.elapsedSeconds !== undefined) {
+          sessionSec = d.elapsedSeconds;
+          totalSec = baseTotalSec + sessionSec; 
+      }
+    }).catch(()=>{});
+  }, 60000); // 60 seconds interval
+})();
+
+// ── Dynamic Task Grid ───────────────────────────────────────────────────────
+(function(){
+  const tbody = document.getElementById('taskRows');
+  const addBtn = document.getElementById('addRowBtn');
+  const countLbl = document.getElementById('rowCountLabel');
+  if(!tbody || !addBtn) return;
+
+  function refreshNumbers(){
+      const rows = tbody.querySelectorAll('.task-row');
+      rows.forEach((row, i)=>{
+        const n = row.querySelector('.row-num');
+        if(n) n.textContent = i+1;
+        const rb = row.querySelector('.remove-row');
+        
+        if(rb) rb.style.display = rows.length > 1 ? 'inline-block' : 'none';
+        
+      });
+      if(countLbl){
+        const c = rows.length;
+        countLbl.textContent = c + (c === 1 ? ' Row' : ' Rows');
+      }
+    }
+
+  addBtn.addEventListener('click', ()=>{
+    const tmpl = tbody.querySelector('.task-row');
+    const clone = tmpl.cloneNode(true);
+    clone.querySelectorAll('input').forEach(i=>i.value='');
+    clone.querySelectorAll('select').forEach(s=>s.selectedIndex=0);
+    const priSel = clone.querySelector('select[name="priority[]"]');
+    if(priSel) priSel.value = 'MEDIUM';
+    tbody.appendChild(clone);
+    refreshNumbers();
+    clone.querySelector('input[type=text]').focus();
+  });
+
+  tbody.addEventListener('click', e=>{
+    if(e.target.closest('.remove-row')){
+      const row = e.target.closest('.task-row');
+      if(tbody.querySelectorAll('.task-row').length > 1){
+        row.remove(); refreshNumbers();
+      }
+    }
+  });
+
+  refreshNumbers();
+})();
+
+// ── Custom Modal Helpers ────────────────────────────────────────────────────
+function showAlertModal(title, message) {
+    document.getElementById('customAlertTitle').textContent = title;
+    document.getElementById('customAlertMessage').textContent = message;
+    new bootstrap.Modal(document.getElementById('customAlertModal')).show();
+}
+
+function showConfirmModal(title, message, onConfirm) {
+    document.getElementById('customConfirmTitle').textContent = title;
+    document.getElementById('customConfirmMessage').textContent = message;
+    
+    const confirmBtn = document.getElementById('customConfirmBtn');
+    // Clone button to securely wipe out old event listeners
+    const newBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+    
+    newBtn.addEventListener('click', function() {
+        bootstrap.Modal.getInstance(document.getElementById('customConfirmModal')).hide();
+        onConfirm();
+    });
+    
+    new bootstrap.Modal(document.getElementById('customConfirmModal')).show();
+}
+
+// ── Updated Button Actions ──────────────────────────────────────────────────
+window.clearGrid = function(){
+  showConfirmModal('Reset Form', 'Are you sure you want to clear all entered tasks?', function() {
+      const rows = document.querySelectorAll('.task-row');
+      rows.forEach((r,i)=>{ if(i>0) r.remove(); });
+      document.querySelectorAll('#taskRows input').forEach(i=>i.value='');
+      document.querySelectorAll('#taskRows select').forEach(s=>s.selectedIndex=0);
+      
+      const countLbl = document.getElementById('rowCountLabel');
+      if(countLbl) countLbl.textContent = '1 Row';
+      
+      const firstRemoveBtn = document.querySelector('.task-row .remove-row');
+      if(firstRemoveBtn) firstRemoveBtn.style.display = 'none';
+  });
+};
+
+window.confirmSubmit = function(e){
+  if(e) e.preventDefault(); // Stop standard form submission immediately
+
+  const descs = document.querySelectorAll('input[name="taskDescription[]"]');
+  let ok = false;
+  descs.forEach(d => { if(d.value.trim()) ok = true; });
+  
+  if(!ok){ 
+      showAlertModal('Missing Information', 'Please enter at least one task description before submitting.'); 
+      return false; 
+  }
+  
+  showConfirmModal('Lock & Submit?', 'Are you sure you want to submit? This will lock your entries for today.', function() {
+      document.getElementById('taskGridForm').submit(); // Trigger actual form submission
+  });
+  
+  return false;
+};
+</script>
+</th:block>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Master Audit Log — ProgTrack</title></head>
+<body>
+<section layout:fragment="content">
+
+  <div class="card shadow-sm border-0 mb-4" style="background-color: var(--bs-card-bg);">
+    <div class="card-body py-3 px-4">
+      <form th:action="@{/reports/company}" method="get" class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small text-muted mb-1">From</label>
+          <input type="date" name="from" class="form-control form-control-sm shadow-none bg-light border-0" th:value="${from != null ? #temporals.format(from,'yyyy-MM-dd') : ''}"/>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted mb-1">To</label>
+          <input type="date" name="to" class="form-control form-control-sm shadow-none bg-light border-0" th:value="${to != null ? #temporals.format(to,'yyyy-MM-dd') : ''}"/>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted mb-1">Department</label>
+          <select name="department" class="form-select form-select-sm shadow-none bg-light border-0">
+            <option value="">All Departments</option>
+            <th:block th:if="${departments != null}">
+              <option th:each="dept : ${departments}" th:if="${dept != null}" th:value="${dept}" th:text="${dept}" th:selected="${dept == selectedDept}">Dept</option>
+            </th:block>
+          </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm fw-semibold shadow-sm"><i class="bi bi-filter me-1"></i>Generate</button>
+          <a th:href="@{/reports/company}" class="btn btn-outline-secondary btn-sm fw-semibold">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-sm-3">
+      <div class="card shadow-sm border-0 text-center py-3" style="border-top:4px solid #4154f1 !important; background-color: var(--bs-card-bg);">
+        <div class="fw-bold fs-3 text-primary" th:text="${totalTasks != null ? totalTasks : 0}">0</div>
+        <small class="text-muted text-uppercase fw-bold" style="font-size: 10px;">Total Task Entries</small>
+      </div>
+    </div>
+    <div class="col-sm-3">
+      <div class="card shadow-sm border-0 text-center py-3" style="border-top:4px solid #28a745 !important; background-color: var(--bs-card-bg);">
+        <div class="fw-bold fs-3 text-success" th:text="${completedTasks != null ? completedTasks : 0}">0</div>
+        <small class="text-muted text-uppercase fw-bold" style="font-size: 10px;">Completed</small>
+      </div>
+    </div>
+    <div class="col-sm-3">
+      <div class="card shadow-sm border-0 text-center py-3" style="border-top:4px solid #ffc107 !important; background-color: var(--bs-card-bg);">
+        <div class="fw-bold fs-3 text-warning" th:text="${(completionRate != null ? completionRate : '0') + '%'}">0%</div>
+        <small class="text-muted text-uppercase fw-bold" style="font-size: 10px;">Completion Rate</small>
+      </div>
+    </div>
+    <div class="col-sm-3">
+      <div class="card shadow-sm border-0 text-center py-3" style="border-top:4px solid #17a2b8 !important; background-color: var(--bs-card-bg);">
+        <div class="fw-bold fs-3 text-info" th:text="${(totalHours != null ? totalHours : '0.0') + 'h'}">0h</div>
+        <small class="text-muted text-uppercase fw-bold" style="font-size: 10px;">Total Hours Logged</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center p-4 border-bottom rounded-top">
+        <h5 class="card-title mb-0 fw-bold text-body">
+          <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i>Master Audit Log
+        </h5>
+        <div class="position-relative mt-3 mt-md-0">
+          <i class="bi bi-search position-absolute text-muted" style="top: 50%; left: 15px; transform: translateY(-50%);"></i>
+          <input type="search" id="reportSearch" class="form-control shadow-none bg-light border-0 ps-5 rounded-pill" placeholder="Search by name, dept, task…" style="width:250px;"/>
+        </div>
+      </div>
+
+      <div th:if="${tasks == null or #lists.isEmpty(tasks)}" class="text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+        <p class="mb-0 fw-bold text-dark">No data found. Adjust your filters and try again.</p>
+      </div>
+
+      <div th:if="${tasks != null and not #lists.isEmpty(tasks)}" class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+        <table class="table table-hover align-middle mb-0" id="reportTable">
+          <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+            <tr>
+              <th class="ps-4 py-3 text-muted small fw-bold text-uppercase">Date</th>
+              <th class="py-3 text-muted small fw-bold text-uppercase">Employee</th>
+              <th class="py-3 text-muted small fw-bold text-uppercase">Dept</th>
+              <th class="py-3 text-muted small fw-bold text-uppercase w-25">Task Description</th>
+              <th class="py-3 text-muted small fw-bold text-uppercase text-center">Category</th>
+              <th class="py-3 text-muted small fw-bold text-uppercase text-center">Hours</th>
+              <th class="py-3 text-muted small fw-bold text-uppercase text-center">Status</th>
+              <th class="pe-4 py-3 text-muted small fw-bold text-uppercase text-end">Priority</th>
+            </tr>
+          </thead>
+          <tbody>
+            <th:block th:each="t : ${tasks}">
+              <tr th:if="${t != null}" th:with="userName=${t.user?.fullName ?: 'Unknown'}, userDept=${t.user?.department ?: '—'}, statusName=${t.status?.name() ?: 'PENDING'}, priorityName=${t.priority?.toString() ?: 'MEDIUM'}">
+                <td class="ps-4 small fw-semibold text-nowrap"><i class="bi bi-calendar me-1 opacity-50"></i><span th:text="${t.taskDate != null ? #temporals.format(t.taskDate,'dd MMM yyyy') : '—'}">—</span></td>
+                <td class="small fw-bold text-body" th:text="${userName}">Name</td>
+                <td class="small text-secondary fw-semibold" th:text="${userDept}">Dept</td>
+                <td class="small" style="max-width: 300px; white-space: normal;" th:text="${t.taskDescription != null ? t.taskDescription : '—'}">Task</td>
+                <td class="small text-center" th:text="${t.taskCategory != null ? t.taskCategory : '—'}">Cat</td>
+                <td class="small fw-bold text-primary text-center" th:text="${t.timeSpent != null ? t.timeSpent + 'h' : '—'}">—</td>
+                <td class="text-center">
+                  <span class="badge rounded-pill px-3" th:classappend="${statusName == 'COMPLETED' ? 'bg-success' : statusName == 'IN_PROGRESS' ? 'bg-primary' : statusName == 'BLOCKED' ? 'bg-danger' : statusName == 'REVIEW' ? 'bg-info text-dark' : 'bg-secondary'}" th:text="${statusName.replace('_',' ')}">Status</span>
+                </td>
+                <td class="pe-4 text-end">
+                  <span class="badge border" th:classappend="${priorityName == 'CRITICAL' ? 'bg-danger text-white' : priorityName == 'HIGH' ? 'bg-warning text-dark' : 'bg-light text-dark'}" th:text="${priorityName}">Priority</span>
+                </td>
+              </tr>
+            </th:block>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<th:block layout:fragment="page-scripts">
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var searchInput = document.getElementById('reportSearch');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function () {
+            var q = this.value.toLowerCase().trim();
+            document.querySelectorAll('#reportTable tbody tr').forEach(function (r) {
+                r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+    }
+});
+</script>
+</th:block>
+</body>
+</html>

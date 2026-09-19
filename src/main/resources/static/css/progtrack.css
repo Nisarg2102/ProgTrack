@@ -1,0 +1,203 @@
+/* =====================================================
+   progtrack.css — ProgTrack custom overrides
+   Extends NiceAdmin Bootstrap 5 theme
+   ===================================================== */
+
+/* ── Root Variables ─────────────────────────────────── */
+:root {
+  --pt-primary: #4154f1;
+  --pt-primary-dark: #2c3be0;
+  --pt-success: #28a745;
+  --pt-warning: #ffc107;
+  --pt-danger: #dc3545;
+  --pt-sidebar-bg: #f6f9ff;
+  --pt-card-shadow: 0 2px 15px rgba(1,41,112,.1);
+}
+
+/* ── Body & Typography ──────────────────────────────── */
+body {
+  font-family: 'Nunito', 'Open Sans', sans-serif;
+  background: #f0f2f5;
+}
+
+/* ── Cards ──────────────────────────────────────────── */
+.card {
+  border: none;
+  box-shadow: var(--pt-card-shadow);
+  border-radius: 10px;
+}
+
+.card-title {
+  font-weight: 700;
+  color: #012970;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* ── Buttons ────────────────────────────────────────── */
+.btn-primary {
+  background-color: var(--pt-primary);
+  border-color: var(--pt-primary);
+}
+.btn-primary:hover {
+  background-color: var(--pt-primary-dark);
+  border-color: var(--pt-primary-dark);
+}
+.btn-outline-primary {
+  color: var(--pt-primary);
+  border-color: var(--pt-primary);
+}
+.btn-outline-primary:hover {
+  background-color: var(--pt-primary);
+  border-color: var(--pt-primary);
+}
+
+/* ── Sidebar ────────────────────────────────────────── */
+.sidebar {
+  background: var(--pt-sidebar-bg);
+}
+
+.sidebar .nav-item .nav-link {
+  color: #444;
+  font-weight: 600;
+  padding: 8px 15px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.sidebar .nav-item .nav-link:hover,
+.sidebar .nav-item .nav-link:not(.collapsed) {
+  color: var(--pt-primary);
+  background: rgba(65,84,241,.08);
+}
+
+.sidebar .nav-content a:hover,
+.sidebar .nav-content a.active {
+  color: var(--pt-primary);
+}
+
+/* ── Header ─────────────────────────────────────────── */
+.header {
+  background: #fff;
+  box-shadow: 0 2px 20px rgba(1,41,112,.07);
+}
+
+/* ── Page Title ─────────────────────────────────────── */
+.pagetitle h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #012970;
+  margin-bottom: 4px;
+}
+
+/* ── Tables ─────────────────────────────────────────── */
+.table {
+  font-size: 0.875rem;
+}
+
+.table th {
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(65,84,241,.04);
+}
+
+/* ── Forms ──────────────────────────────────────────── */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--pt-primary);
+  box-shadow: 0 0 0 0.2rem rgba(65,84,241,.15);
+}
+
+/* ── Badges ─────────────────────────────────────────── */
+.badge {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── Task Grid Table ────────────────────────────────── */
+#taskGrid td, #taskGrid th {
+  vertical-align: middle;
+}
+
+#taskGrid tbody tr {
+  transition: background 0.15s;
+}
+
+#taskGrid tbody tr:hover {
+  background: rgba(65,84,241,.03);
+}
+
+#taskGrid .form-control,
+#taskGrid .form-select {
+  font-size: 0.85rem;
+}
+
+/* ── Live Timer ─────────────────────────────────────── */
+#live-timer {
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Chat ───────────────────────────────────────────── */
+.chat-wrapper {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* ── Notification Badge ─────────────────────────────── */
+.badge-number {
+  font-size: 10px;
+  position: absolute;
+  top: 2px;
+  right: -2px;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Alert ──────────────────────────────────────────── */
+.alert {
+  border-radius: 8px;
+  border: none;
+}
+
+/* ── Info Cards (NiceAdmin style) ───────────────────── */
+.info-card .card-icon {
+  width: 50px;
+  height: 50px;
+}
+
+/* ── Progress bar ───────────────────────────────────── */
+.progress {
+  border-radius: 50px;
+}
+
+/* ── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+/* ── Mobile ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .chat-sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e9ecef; max-height: 250px; }
+  .chat-wrapper { flex-direction: column; }
+  #taskGrid { font-size: 0.78rem; }
+}
+
+/* ── Print ──────────────────────────────────────────── */
+@media print {
+  .sidebar, .header, .btn, .no-print { display: none !important; }
+  .main { margin-left: 0 !important; }
+  .card { box-shadow: none; border: 1px solid #dee2e6; }
+}

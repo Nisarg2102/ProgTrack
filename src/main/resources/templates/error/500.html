@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Server Error — ProgTrack</title>
+    
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet"/>
+    <link th:href="@{/assets/vendor/bootstrap/css/bootstrap.min.css}" rel="stylesheet"/>
+    <link th:href="@{/assets/vendor/bootstrap-icons/bootstrap-icons.css}" rel="stylesheet"/>
+    
+    <style>
+        body{font-family:'Nunito',sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;min-height:100vh; transition: background-color 0.3s;}
+        .error-box{text-align:center;max-width:520px;padding:44px 32px;background:#fff;border-radius:16px;box-shadow:0 4px 30px rgba(0,0,0,.08); transition: all 0.3s;}
+        .error-code{font-size:6rem;font-weight:800;color:#dc3545;line-height:1;}
+        
+        /* Dark Mode Overrides */
+        :root[data-theme="dark"] body { background-color: #0f172a !important; color: #f8fafc !important; }
+        :root[data-theme="dark"] .error-box { background-color: #1e293b !important; box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important; }
+        :root[data-theme="dark"] h3 { color: #f8fafc !important; }
+        :root[data-theme="dark"] .text-muted { color: #94a3b8 !important; }
+        :root[data-theme="dark"] .error-code { color: #f87171 !important; } /* Lighter red for dark mode */
+        :root[data-theme="dark"] .alert-light { background-color: #334155 !important; border-color: #475569 !important; color: #f8fafc !important; }
+        :root[data-theme="dark"] .btn-outline-danger { color: #f87171 !important; border-color: #7f1d1d !important; }
+        :root[data-theme="dark"] .btn-outline-danger:hover { background-color: #7f1d1d !important; color: #fff !important; }
+        
+        /* Floating Toggle Button */
+        .floating-theme-toggle { position: fixed; bottom: 25px; right: 25px; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; transition: all 0.3s ease; cursor: pointer; border: none; }
+        :root[data-theme="dark"] .floating-theme-toggle { background-color: #334155 !important; border: 1px solid #475569 !important; color: #f59e0b !important; }
+        :root[data-theme="light"] .floating-theme-toggle { background-color: #fff !important; border: 1px solid #e2e8f0 !important; color: #4154f1 !important; }
+        .floating-theme-toggle:hover { transform: scale(1.1); }
+    </style>
+</head>
+<body>
+    <div class="error-box">
+        <div class="error-code">500</div>
+        <h3 class="mt-2 mb-2">Internal Server Error</h3>
+        <p class="text-muted">Something went wrong on our end. Our team has been notified. Please try again in a moment.</p>
+        
+        <div class="alert alert-light border text-start small mt-3" th:if="${error != null or (message != null and message != '')}">
+            <i class="bi bi-bug me-1 text-danger"></i>
+            <span th:text="${(message != null and message != '') ? message : (error ?: 'Unknown Server Error')}">Error details</span>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-center mt-4">
+            <a href="javascript:location.reload()" class="btn btn-outline-danger">
+                <i class="bi bi-arrow-clockwise me-1"></i>Try Again
+            </a>
+            <a th:href="@{/}" class="btn btn-primary">
+                <i class="bi bi-house me-1"></i>Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <button class="floating-theme-toggle" onclick="toggleAuthTheme()" title="Toggle Dark/Light Mode">
+        <i id="auth-theme-icon" class="bi bi-moon-fill fs-5"></i>
+    </button>
+
+    <script th:src="@{/assets/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            updateAuthThemeIcon(savedTheme);
+        });
+
+        function toggleAuthTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateAuthThemeIcon(newTheme);
+        }
+
+        function updateAuthThemeIcon(theme) {
+            const icon = document.getElementById('auth-theme-icon');
+            if(theme === 'dark') {
+                icon.className = 'bi bi-sun-fill fs-5';
+            } else {
+                icon.className = 'bi bi-moon-fill fs-5';
+            }
+        }
+    </script>
+</body>
+</html>

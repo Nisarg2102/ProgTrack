@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Work Log — ProgTrack</title></head>
+<body>
+<section layout:fragment="content">
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-3">
+    <div class="col-sm-4">
+      <div class="card text-center py-3" style="border-top:4px solid #4154f1;">
+        <div class="fw-bold fs-3 text-primary" id="totalSessionCount">—</div>
+        <small class="text-muted">Sessions in Period</small>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card text-center py-3" style="border-top:4px solid #28a745;">
+        <div class="fw-bold fs-3 text-success" id="totalHoursDisplay">—</div>
+        <small class="text-muted">Total Hours Online</small>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card text-center py-3" style="border-top:4px solid #ffc107;">
+        <div class="fw-bold fs-3 text-warning" id="avgHoursDisplay">—</div>
+        <small class="text-muted">Avg Hours / Day</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Date Filter -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <form th:action="@{/worklog}" method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small text-muted mb-1">From</label>
+          <input type="date" name="from" class="form-control form-control-sm"
+                 th:value="${from != null ? #temporals.format(from,'yyyy-MM-dd') : ''}"/>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted mb-1">To</label>
+          <input type="date" name="to" class="form-control form-control-sm"
+                 th:value="${to != null ? #temporals.format(to,'yyyy-MM-dd') : ''}"/>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-filter me-1"></i>Filter
+          </button>
+          <a th:href="@{/worklog}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Work Log Table -->
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">
+        <i class="bi bi-clock-history me-2 text-primary"></i>Session Log
+      </h5>
+
+      <div th:if="${#lists.isEmpty(workLogs)}" class="text-center py-5 text-muted">
+        <i class="bi bi-clock fs-1 d-block mb-2"></i>No work sessions found for this period.
+      </div>
+
+      <div th:unless="${#lists.isEmpty(workLogs)}" class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0" id="wlTable">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Login Time</th>
+              <th>Logout Time</th>
+              <th>Duration</th>
+              <th>Hours</th>
+              <th>IP Address</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="wl, s : ${workLogs}">
+              <td class="text-muted small" th:text="${s.count}">1</td>
+              <td class="small fw-semibold"
+                  th:text="${#temporals.format(wl.loginDateTime,'EEE dd MMM, HH:mm:ss')}">—</td>
+              <td class="small"
+                  th:text="${wl.logoutDateTime != null ?
+                             #temporals.format(wl.logoutDateTime,'EEE dd MMM, HH:mm:ss') : '—'}">—</td>
+              <td class="small fw-semibold" th:text="${wl.formattedDuration}">—</td>
+              <td class="small" th:text="${#numbers.formatDecimal(wl.totalHours, 1, 2)} + 'h'">—</td>
+              <td class="small text-muted" th:text="${wl.ipAddress ?: '—'}">—</td>
+              <td>
+                <span th:if="${wl.logoutDateTime == null}"
+                      class="badge bg-success">
+                  <i class="bi bi-circle-fill me-1" style="font-size:8px;"></i>Online
+                </span>
+                <span th:unless="${wl.logoutDateTime == null}"
+                      class="badge bg-secondary">Completed</span>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot class="table-light fw-semibold">
+            <tr>
+              <td colspan="3" class="text-end">Period Totals:</td>
+              <td id="footerDuration">—</td>
+              <td id="footerHours">—</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<th:block layout:fragment="page-scripts">
+<script th:inline="javascript">
+(function(){
+  const workLogs = /*[[${workLogs}]]*/ [];
+  if(!workLogs || workLogs.length === 0) return;
+
+  let totalSec = 0, sessionCount = 0;
+  workLogs.forEach(wl => {
+    if(wl.totalSeconds) { totalSec += wl.totalSeconds; sessionCount++; }
+  });
+
+  const totalHours = (totalSec / 3600).toFixed(2);
+  const days = new Set(workLogs.map(wl => wl.loginDateTime?.substring(0,10))).size;
+  const avgHours = days > 0 ? (totalSec / 3600 / days).toFixed(2) : '0.00';
+
+  function fmtSec(s){
+    const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+    return h+'h '+m+'m '+sec+'s';
+  }
+
+  const cnt = document.getElementById('totalSessionCount');
+  const tot = document.getElementById('totalHoursDisplay');
+  const avg = document.getElementById('avgHoursDisplay');
+  const fd  = document.getElementById('footerDuration');
+  const fh  = document.getElementById('footerHours');
+
+  if(cnt) cnt.textContent = workLogs.length;
+  if(tot) tot.textContent = totalHours + 'h';
+  if(avg) avg.textContent = avgHours + 'h';
+  if(fd)  fd.textContent  = fmtSec(totalSec);
+  if(fh)  fh.textContent  = totalHours + 'h';
+})();
+</script>
+</th:block>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<aside th:fragment="sidebar" id="sidebar" class="sidebar">
+
+    <ul class="sidebar-nav" id="sidebar-nav">
+
+        <li class="nav-item">
+            <a class="nav-link collapsed" th:href="@{/}">
+                <i class="bi bi-grid"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+
+        <li sec:authorize="hasRole('INTERN')" class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#intern-nav" data-bs-toggle="collapse" href="#">
+                <i class="bi bi-person-workspace"></i><span>My Workspace</span>
+                <i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="intern-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+                <li><a th:href="@{/tasks/today}"><i class="bi bi-circle"></i><span>Today's Tasks</span></a></li>
+                <li><a th:href="@{/tasks/history}"><i class="bi bi-circle"></i><span>Task History</span></a></li>
+                <li><a th:href="@{/workspace/reports/weekly}"><i class="bi bi-circle"></i><span>Weekly Reports</span></a></li>
+                <li><a th:href="@{/workspace/reports/monthly}"><i class="bi bi-circle"></i><span>Monthly Reports</span></a></li>
+            </ul>
+        </li>
+
+        <li sec:authorize="hasAnyRole('LEAD','CEO')" class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#team-nav" data-bs-toggle="collapse" href="#">
+                <i class="bi bi-people"></i>
+                <span sec:authorize="hasRole('LEAD')">Team</span>
+                <span sec:authorize="hasRole('CEO')">Company</span>
+                <i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="team-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+                
+                <li sec:authorize="hasRole('LEAD')"><a th:href="@{/tasks/team}"><i class="bi bi-circle"></i><span>Team Daily Reports</span></a></li>
+                <li sec:authorize="hasRole('LEAD')"><a th:href="@{/lead/reports/weekly}"><i class="bi bi-circle"></i><span>Team Weekly Reports</span></a></li>
+                <li sec:authorize="hasRole('LEAD')"><a th:href="@{/lead/reports/monthly}"><i class="bi bi-circle"></i><span>Team Monthly Reports</span></a></li>
+                
+                <li sec:authorize="hasRole('CEO')"><a th:href="@{/ceo/reports/monthly}"><i class="bi bi-circle"></i><span>All Monthly Reports</span></a></li>
+                
+                <li><a th:href="@{/leaves/manage}"><i class="bi bi-circle"></i><span>Leave Management</span></a></li>
+                <li sec:authorize="hasRole('LEAD')"><a th:href="@{/reports/team}"><i class="bi bi-circle"></i><span>Team Analytics</span></a></li>
+            </ul>
+        </li>
+
+        <li sec:authorize="hasAnyRole('CEO','ADMIN')" class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#analytics-nav" data-bs-toggle="collapse" href="#">
+                <i class="bi bi-bar-chart-line"></i><span>Analytics</span>
+                <i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="analytics-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+                <li><a th:href="@{/analytics/productivity}"><i class="bi bi-circle"></i><span>Productivity Trends</span></a></li>
+                <li><a th:href="@{/analytics/attendance}"><i class="bi bi-circle"></i><span>Attendance Analytics</span></a></li>
+            </ul>
+        </li>
+
+		<!--
+        <li sec:authorize="hasRole('ADMIN')" class="nav-heading">Platform Monitoring</li>
+        
+        <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+            <a class="nav-link collapsed" data-bs-target="#sys-analytics-nav" data-bs-toggle="collapse" href="#">
+                <i class="bi bi-server"></i><span>System Analytics</span>
+                <i class="bi bi-chevron-down ms-auto"></i>
+            </a>
+            <ul id="sys-analytics-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+                <li><a th:href="@{/admin/analytics/traffic}"><i class="bi bi-circle"></i><span>Traffic & Usage</span></a></li>
+                <li><a th:href="@{/admin/analytics/security}"><i class="bi bi-circle"></i><span>Security Audit</span></a></li>
+            </ul>
+        </li>
+		-->
+
+		
+
+		        <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+		            <a class="nav-link collapsed" data-bs-target="#user-mgmt-nav" data-bs-toggle="collapse" href="#">
+		                <i class="bi bi-people-fill"></i><span>Users</span>
+		                <i class="bi bi-chevron-down ms-auto"></i>
+		            </a>
+		            <ul id="user-mgmt-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+		                <li><a th:href="@{/admin/users}"><i class="bi bi-circle"></i><span>User Management</span></a></li>
+		                <li><a th:href="@{/admin/users/pending}"><i class="bi bi-circle"></i><span>Registration Requests</span></a></li>
+		            </ul>
+		        </li>
+		
+		<!--
+        <li sec:authorize="hasRole('ADMIN')" class="nav-item">
+            <a class="nav-link collapsed" th:href="@{/admin/settings}">
+                <i class="bi bi-gear-fill"></i>
+                <span>System Settings</span>
+            </a>
+        </li>
+		-->
+
+        <li class="nav-heading">Communication</li>
+
+        <li class="nav-item">
+            <a class="nav-link collapsed" th:href="@{/chat}">
+                <i class="bi bi-chat-dots"></i>
+                <span>Team Chat</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link collapsed" th:href="@{/notifications}">
+                <i class="bi bi-bell"></i>
+                <span>Notifications</span>
+                <span class="badge bg-danger rounded-pill ms-auto"
+                      th:text="${globalUnreadNotifCount}"
+                      th:if="${globalUnreadNotifCount != null && globalUnreadNotifCount > 0}"></span>
+            </a>
+        </li>
+
+        <li class="nav-heading">Personal</li>
+
+        <li class="nav-item" sec:authorize="!hasAnyRole('CEO', 'ADMIN')">
+            <a class="nav-link collapsed" th:href="@{/leaves/my}">
+                <i class="bi bi-calendar-check"></i>
+                <span>My Leaves</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link collapsed" th:href="@{/profile}">
+                <i class="bi bi-person"></i>
+                <span>My Profile</span>
+            </a>
+        </li>
+
+    </ul>
+
+	<script>
+	        document.addEventListener("DOMContentLoaded", function() {
+	            var currentPath = window.location.pathname;
+	            var bestMatch = null;
+	            var maxMatchLength = 0;
+
+	            // 1. Find the most specific (longest) matching link
+	            document.querySelectorAll('#sidebar-nav a').forEach(function(link) {
+	                var rawHref = link.getAttribute('href');
+	                if (!rawHref || rawHref === '#') return;
+
+	                // Check exact match, or if it's a sub-page (e.g., /admin/users/edit/1)
+	                if (currentPath === rawHref || currentPath.startsWith(rawHref + '/')) {
+	                    if (rawHref.length > maxMatchLength) {
+	                        maxMatchLength = rawHref.length;
+	                        bestMatch = link;
+	                    }
+	                }
+	            });
+
+	            // 2. Apply the active classes ONLY to the best match
+	            if (bestMatch) {
+	                bestMatch.classList.remove('collapsed');
+	                bestMatch.classList.add('active');
+	                
+	                var parentUl = bestMatch.closest('.nav-content');
+	                if (parentUl) {
+	                    parentUl.classList.add('show');
+	                    var toggleLink = parentUl.previousElementSibling;
+	                    if (toggleLink) {
+	                        toggleLink.classList.remove('collapsed');
+	                        toggleLink.classList.add('active');
+	                    }
+	                }
+	            } else if (currentPath.includes('/dashboard')) {
+	                // Fallback for dashboard variations
+	                var dashIcon = document.querySelector('#sidebar-nav .bi-grid');
+	                if (dashIcon) {
+	                    var dashLink = dashIcon.closest('a');
+	                    if (dashLink) {
+	                        dashLink.classList.remove('collapsed');
+	                        dashLink.classList.add('active');
+	                    }
+	                }
+	            }
+	        });
+	    </script>
+
+</aside>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head><title>Notifications — ProgTrack</title></head>
+<body>
+<section layout:fragment="content">
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-4">
+
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <h5 class="card-title mb-0 p-0 fw-bold text-dark d-flex align-items-center">
+          <i class="bi bi-bell-fill me-2 text-primary fs-4"></i>
+          All Notifications
+          <span class="badge bg-danger ms-2 rounded-pill shadow-sm page-counter-badge" 
+                th:text="${unseenCount}" 
+                th:if="${unseenCount != null && unseenCount > 0}">0</span>
+        </h5>
+        
+        <button class="btn btn-primary btn-sm fw-semibold shadow-sm px-3" onclick="markAllReadPage()">
+          <i class="bi bi-check2-all me-1"></i>Mark All Read
+        </button>
+      </div>
+
+      <div th:with="notifList=${(allNotifications != null and not #lists.isEmpty(allNotifications)) ? allNotifications : notifications}">
+
+          <div th:if="${notifList == null or #lists.isEmpty(notifList)}" class="text-center py-5 text-muted" id="empty-state">
+            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 80px; height: 80px;">
+                <i class="bi bi-bell-slash fs-1 text-secondary opacity-50"></i>
+            </div>
+            <h5 class="fw-bold text-dark">No notifications yet</h5>
+            <p class="mb-0">You're all caught up! Check back later.</p>
+          </div>
+
+          <div id="notifications-container" th:unless="${notifList == null or #lists.isEmpty(notifList)}">
+
+            <div th:each="notif : ${notifList}" th:if="${notif != null}"
+                 th:id="'page-notif-' + ${notif.id}"
+                 th:class="'notification-card position-relative d-flex align-items-start gap-3 p-3 border rounded mb-3 ' + (${notif.isSeen != null and notif.isSeen} ? 'bg-light' : 'bg-white shadow-sm border-primary border-opacity-25')">
+
+              <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm"
+                   style="width:48px; height:48px; background-color: #e0e5ff;">
+                <i class="bi bi-bell-fill text-primary fs-5"></i>
+              </div>
+
+              <div class="flex-grow-1 d-flex justify-content-between align-items-start">
+                
+                <div class="pe-3">
+                    <h6 class="mb-3 fw-bold text-dark" style="font-size: 15px;" 
+                        th:text="${notif.message != null ? notif.message : 'System Alert'}">Message</h6>
+                    
+                    <div class="text-muted d-flex align-items-center gap-2" style="font-size:12px;">
+                      <span>
+                          <i class="bi bi-clock me-1"></i>
+                          <span th:text="${notif.createdAt != null ? #temporals.format(notif.createdAt,'dd MMM yyyy, hh:mm a') : 'Just now'}">Time</span>
+                      </span>
+                      
+                      <span th:if="${notif.type != null}" class="badge bg-secondary opacity-75 fw-normal" 
+                            th:text="${notif.type.toString().replace('_',' ')}">Type</span>
+                      
+                      <span th:if="${notif.isSeen == null or !notif.isSeen}" 
+                            class="badge bg-primary rounded-pill unread-badge">New</span>
+                    </div>
+
+                    <div th:if="${notif.actionUrl != null and !notif.actionUrl.trim().isEmpty() and notif.actionUrl != '#' and notif.actionUrl != 'null'}" class="mt-2">
+                        <!-- 🟢 Bulletproof Redirect Link -->
+                        <a th:href="@{/notifications/click/{id}(id=${notif.id})}" 
+                           class="btn btn-sm btn-outline-primary px-3 fw-semibold shadow-sm" style="font-size: 12px;">View Details</a>
+                    </div>
+                </div>
+
+                <button th:if="${notif.isSeen == null or !notif.isSeen}" 
+                        type="button" 
+                        class="btn btn-sm btn-outline-primary shadow-sm fw-semibold mark-read-btn flex-shrink-0 mt-1" 
+                        th:data-id="${notif.id}"
+                        onclick="markSingleReadPage(this.getAttribute('data-id'), this)">
+                    <i class="bi bi-check2 me-1"></i>Read
+                </button>
+                
+              </div>
+            </div>
+          </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<th:block layout:fragment="page-scripts">
+  <script th:inline="javascript">
+    
+    // Kept ONLY the single explicit read marking function, all redirect logic is now handled naturally by the backend
+    function markSingleReadPage(id, btnElement) {
+        var card = btnElement.closest('.notification-card');
+        if (card) {
+            card.classList.remove('bg-white', 'shadow-sm', 'border-primary', 'border-opacity-25');
+            card.classList.add('bg-light', 'transition-all');
+            
+            var newBadge = card.querySelector('.unread-badge');
+            if (newBadge) newBadge.remove();
+            
+            btnElement.remove();
+        }
+
+        var pageBadge = document.querySelector('.page-counter-badge');
+        if (pageBadge) {
+            var currentCount = parseInt(pageBadge.textContent) || 0;
+            if (currentCount > 1) {
+                pageBadge.textContent = currentCount - 1;
+            } else {
+                pageBadge.remove();
+            }
+        }
+
+        var ddItem = document.getElementById('dd-notif-' + id);
+        var ddDivider = document.getElementById('dd-divider-' + id);
+        if (ddItem) ddItem.remove();
+        if (ddDivider) ddDivider.remove();
+        
+        if (typeof decrementNavBadgeCount === 'function') {
+            decrementNavBadgeCount();
+        }
+
+        var csrfToken = typeof getCsrfToken === 'function' ? getCsrfToken() : '';
+        fetch('/notifications/mark-read/' + id, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken }
+        }).catch(e => console.log('Silently failed to mark read on server', e));
+    }
+
+    function markAllReadPage() {
+        var cards = document.querySelectorAll('.notification-card');
+        cards.forEach(card => {
+            card.classList.remove('bg-white', 'shadow-sm', 'border-primary', 'border-opacity-25');
+            card.classList.add('bg-light');
+            
+            var newBadge = card.querySelector('.unread-badge');
+            if (newBadge) newBadge.remove();
+            
+            var readBtn = card.querySelector('.mark-read-btn');
+            if (readBtn) readBtn.remove();
+        });
+
+        var pageBadge = document.querySelector('.page-counter-badge');
+        if (pageBadge) pageBadge.remove();
+
+        document.querySelectorAll('[id^="dd-notif-"], [id^="dd-divider-"]').forEach(el => el.remove());
+        
+        if (typeof decrementNavBadgeCount === 'function') {
+            decrementNavBadgeCount();
+        }
+
+        fetch('/notifications/mark-all-read', { method: 'GET' })
+            .catch(e => console.log('Silently failed to mark all read on server', e));
+    }
+    
+  </script>
+</th:block>
+</body>
+</html>

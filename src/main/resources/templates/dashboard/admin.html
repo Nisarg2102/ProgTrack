@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Admin Dashboard — ProgTrack</title>
+  <style>
+    /* ── 1. Default Light Mode Variables ─────────────────────────────── */
+    :root {
+      --admin-primary:   #4154f1;
+      --admin-success:   #22c55e;
+      --admin-warning:   #f59e0b;
+      --admin-danger:    #ef4444;
+      --admin-info:      #06b6d4;
+      --admin-purple:    #8b5cf6;
+      
+      --admin-text-main: #1e293b;
+      --admin-card-bg:   #ffffff;
+      --admin-border:    #e2e8f0;
+      --admin-text-muted:#64748b;
+      --admin-bg-hover:  #f8fafc;
+      
+      --role-admin-bg:   #1e293b; /* Black/Dark in Light Mode */
+      --role-admin-text: #ffffff;
+      
+      --admin-shadow:    0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+      --admin-shadow-lg: 0 8px 32px rgba(65,84,241,.15);
+    }
+
+    /* ── 2. Explicit Dark Mode Toggled ───────────────────────────────── */
+    [data-theme="dark"], [data-bs-theme="dark"] {
+      --admin-text-main: #f1f5f9;
+      --admin-card-bg:   #1e293b;
+      --admin-border:    #334155;
+      --admin-text-muted:#94a3b8;
+      --admin-bg-hover:  #0f172a;
+      
+      --role-admin-bg:   #e2e8f0; /* White/Light in Dark Mode */
+      --role-admin-text: #0f172a;
+      
+      --admin-shadow:    0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+    }
+
+    body {
+      color: var(--admin-text-main);
+    }
+
+    .stat-card {
+      background: var(--admin-card-bg);
+      border-radius: 14px;
+      padding: 22px 24px;
+      padding-bottom: 30px; 
+      box-shadow: var(--admin-shadow);
+      border: 1px solid var(--admin-border);
+      transition: transform .2s, box-shadow .2s;
+      position: relative;
+      overflow: hidden;
+      height: 100%;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: var(--admin-shadow-lg); }
+    .stat-card .stat-icon {
+      width: 52px; height: 52px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; flex-shrink: 0; margin-bottom: 12px;
+    }
+    .stat-card .stat-value { font-size: 2.2rem; font-weight: 800; line-height: 1; letter-spacing: -1px; color: var(--admin-text-main); }
+    .stat-card .stat-label { font-size: .78rem; color: var(--admin-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .stat-card .stat-badge { 
+      font-size: .72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; 
+      position: absolute; bottom: 16px; right: 16px; 
+    }
+    
+    .stat-card::after {
+      content: ''; position: absolute; top: -30px; right: -30px;
+      width: 100px; height: 100px; border-radius: 50%; opacity: .06;
+    }
+    .stat-card.primary::after   { background: var(--admin-primary); }
+    .stat-card.success::after   { background: var(--admin-success); }
+    .stat-card.warning::after   { background: var(--admin-warning); }
+    .stat-card.danger::after    { background: var(--admin-danger); }
+    .stat-card.info::after      { background: var(--admin-info); }
+    .stat-card.purple::after    { background: var(--admin-purple); }
+
+    /* Force Title Colors */
+    .stat-card.primary .stat-value { color: var(--admin-primary); }
+    .stat-card.success .stat-value { color: var(--admin-success); }
+    .stat-card.warning .stat-value { color: var(--admin-warning); }
+    .stat-card.danger .stat-value  { color: var(--admin-danger); }
+    .stat-card.info .stat-value    { color: var(--admin-info); }
+    .stat-card.purple .stat-value  { color: var(--admin-purple); }
+
+    .section-title {
+      font-size: .8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--admin-text-main);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--admin-border); }
+
+    .online-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--admin-success);
+      box-shadow: 0 0 0 2px rgba(34,197,94,.3); display: inline-block; flex-shrink: 0;
+      animation: pulse-green 2s infinite;
+    }
+    @keyframes pulse-green {
+      0%, 100% { box-shadow: 0 0 0 2px rgba(34,197,94,.3); }
+      50% { box-shadow: 0 0 0 5px rgba(34,197,94,.1); }
+    }
+
+    /* Force Table Variables for Theme Switching */
+    .admin-table { font-size: .84rem; color: var(--admin-text-main); --bs-table-bg: transparent; }
+    .admin-table th { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--admin-text-muted); border-bottom: 2px solid var(--admin-border) !important; padding: 10px 12px; background-color: var(--admin-bg-hover) !important; }
+    .admin-table td { padding: 10px 12px; vertical-align: middle; border-bottom: 1px solid var(--admin-border); color: var(--admin-text-main); background-color: transparent !important; }
+    .admin-table tr:hover td { background-color: var(--admin-bg-hover) !important; }
+
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0;
+      position: relative; overflow: hidden;
+    }
+    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Role Backgrounds */
+    .role-admin    { background: var(--role-admin-bg) !important; color: var(--role-admin-text) !important; }
+    .role-ceo      { background: #ef4444 !important; color: #fff !important; }
+    .role-director { background: #f59e0b !important; color: #fff !important; }
+    .role-lead  { background: #4154f1 !important; color: #fff !important; }
+    .role-intern   { background: #22c55e !important; color: #fff !important; }
+    .role-unknown  { background: #64748b !important; color: #fff !important; }
+
+    .chart-card {
+      background: var(--admin-card-bg); border-radius: 14px; padding: 22px 24px;
+      box-shadow: var(--admin-shadow); border: 1px solid var(--admin-border); height: 100%;
+    }
+    .chart-card .chart-title {
+      font-size: .9rem; font-weight: 700; color: var(--admin-text-main); margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .quick-action {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; padding: 20px 12px; border-radius: 14px; border: 2px solid var(--admin-border);
+      background: var(--admin-card-bg); text-decoration: none; color: var(--admin-text-main);
+      transition: all .2s; font-size: .9rem; font-weight: 600; text-align: center;
+    }
+    .quick-action:hover { border-color: var(--admin-primary); background: var(--admin-bg-hover); color: var(--admin-primary); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(65,84,241,.12); }
+    .quick-action i { font-size: 1.8rem; }
+
+    .live-badge { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 600; color: var(--admin-success); background: #dcfce7; padding: 3px 10px; border-radius: 20px; }
+    
+    .table-scroll { max-height: 340px; overflow-y: auto; overflow-x: hidden; }
+    .table-scroll::-webkit-scrollbar { width: 4px; }
+    .table-scroll::-webkit-scrollbar-thumb { background: var(--admin-text-muted); border-radius: 2px; }
+
+    /* Safe Theme Overrides */
+    .theme-text { color: var(--admin-text-main) !important; }
+    .theme-text-muted { color: var(--admin-text-muted) !important; }
+    .theme-border { border-color: var(--admin-border) !important; }
+    .theme-bg { background-color: var(--admin-card-bg) !important; }
+  </style>
+</head>
+
+<body>
+<section layout:fragment="content">
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-4 col-sm-6">
+      <div class="stat-card primary">
+        <div class="stat-icon" style="background:#eef0fe;"><i class="bi bi-people-fill" style="color:#4154f1;"></i></div>
+        <div class="stat-value" th:text="${totalUsers ?: 0}">0</div>
+        <div class="stat-label mt-1">Total System Users</div>
+        <span class="stat-badge" style="background:#eef0fe;color:#4154f1;">All Time</span>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-sm-6">
+      <div class="stat-card success">
+        <div class="stat-icon" style="background:#dcfce7;"><i class="bi bi-person-check-fill" style="color:#22c55e;"></i></div>
+        <div class="stat-value" th:text="${activeCount ?: 0}">0</div>
+        <div class="stat-label mt-1">Active Accounts</div>
+        <span class="stat-badge" style="background:#dcfce7;color:#16a34a;"><i class="bi bi-check-circle me-1"></i>Verified</span>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-sm-6">
+      <div class="stat-card info">
+        <div class="stat-icon" style="background:#cffafe;"><i class="bi bi-wifi" style="color:#06b6d4;"></i></div>
+        <div class="stat-value" th:text="${onlineUsers != null ? onlineUsers.size() : 0}">0</div>
+        <div class="stat-label mt-1">Online Now</div>
+        <span class="stat-badge d-flex align-items-center gap-1" style="background:#cffafe;color:#0891b2;"><span class="online-dot" style="width:6px;height:6px;"></span> Live</span>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-sm-6">
+      <div class="stat-card warning">
+        <div class="stat-icon" style="background:#fef3c7;"><i class="bi bi-building" style="color:#f59e0b;"></i></div>
+        <div class="stat-value" th:text="${deptUserCount != null ? deptUserCount.size() : 0}">0</div>
+        <div class="stat-label mt-1">Total Departments</div>
+        <span class="stat-badge" style="background:#fef3c7;color:#d97706;">Company</span>
+      </div>
+    </div>
+
+	<div class="col-lg-4 col-sm-6">
+	      <div class="stat-card purple">
+	        <div class="stat-icon" style="background:#ede9fe;"><i class="bi bi-person-lines-fill" style="color:#8b5cf6;"></i></div>
+	        <div class="stat-value" th:text="${pendingUsersCount ?: 0}">0</div>
+	        <div class="stat-label mt-1">Pending Requests</div>
+	        <span class="stat-badge" style="background:#ede9fe;color:#7c3aed;">Approval</span>
+	      </div>
+	    </div>
+
+    <div class="col-lg-4 col-sm-6">
+      <div class="stat-card danger">
+        <div class="stat-icon" style="background:#fee2e2;"><i class="bi bi-clock-history" style="color:#ef4444;"></i></div>
+        <div class="stat-value" th:text="${monthHoursLogged ?: '0.0'} + 'h'">0h</div>
+        <div class="stat-label mt-1">Hours Logged</div>
+        <span class="stat-badge" style="background:#fee2e2;color:#dc2626;">This Month</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-5">
+    <div class="section-title">Quick Actions</div>
+	<div class="row g-3">
+	      <div class="col-6 col-sm-4 col-lg"><a th:href="@{/admin/users}" class="quick-action"><i class="bi bi-people" style="color:#4154f1;"></i>All Users</a></div>
+	      <div class="col-6 col-sm-4 col-lg"><a th:href="@{/admin/users/pending}" class="quick-action"><i class="bi bi-person-add" style="color:#f59e0b;"></i>Requests</a></div>
+	      <div class="col-6 col-sm-4 col-lg"><a th:href="@{/analytics/productivity}" class="quick-action"><i class="bi bi-graph-up-arrow" style="color:#8b5cf6;"></i>Productivity</a></div>
+	      <div class="col-6 col-sm-6 col-lg"><a th:href="@{/analytics/attendance}" class="quick-action"><i class="bi bi-calendar-check" style="color:#22c55e;"></i>Attendance</a></div>
+	      <div class="col-12 col-sm-6 col-lg"><a th:href="@{/chat}" class="quick-action"><i class="bi bi-chat-dots" style="color:#ef4444;"></i>Team Chat</a></div>
+	    </div>
+  </div>
+
+  <th:block th:if="${dailyTaskTrend != null}"><div id="data-trend" style="display:none;"><span class="trend-item" th:each="e : ${dailyTaskTrend}" th:data-key="${e.key}" th:data-val="${e.value}"></span></div></th:block>
+  <th:block th:if="${deptUserCount != null}"><div id="data-dept" style="display:none;"><span class="dept-item" th:each="e : ${deptUserCount}" th:data-key="${e.key}" th:data-val="${e.value}"></span></div></th:block>
+
+  <div class="section-title">System Insights</div>
+  
+  <div class="row g-4 mb-4">
+    <div class="col-lg-12">
+      <div class="chart-card d-flex flex-column">
+        <div class="chart-title">
+          <span><i class="bi bi-activity me-2" style="color:#4154f1;"></i>Task Submission Trend — Last 14 Days</span>
+        </div>
+        <div id="trendChartContainer" class="flex-grow-1 position-relative" style="min-height: 280px;">
+            <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="chart-card d-flex flex-column h-100">
+        <div class="chart-title"><span><i class="bi bi-building me-2" style="color:#06b6d4;"></i>Users by Department</span></div>
+        <div id="deptChartContainer" class="flex-grow-1 position-relative" style="min-height: 250px;">
+            <canvas id="deptChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="chart-card h-100">
+        <div class="chart-title"><span><i class="bi bi-person-badge me-2" style="color:#f59e0b;"></i>Role Distribution</span></div>
+        <div class="mt-3" th:if="${roleCounts != null}">
+          <div th:each="entry : ${roleCounts}" class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="badge" th:classappend="${entry.key != null ? 'role-' + #strings.toLowerCase(entry.key.toString()) : 'role-unknown'}" th:text="${entry.key ?: 'Unknown'}">ROLE</span>
+              <span class="fw-bold theme-text" th:text="${entry.value}">0</span>
+            </div>
+            <div class="progress" style="height: 6px; background: var(--admin-border); border-radius: 3px; overflow: hidden;">
+              <div class="progress-bar" 
+                   th:classappend="${entry.key != null ? 'role-' + #strings.toLowerCase(entry.key.toString()) : 'role-unknown'}" 
+                   th:style="'width: ' + (${totalUsers != null and totalUsers > 0 ? (entry.value * 100.0 / totalUsers) : 0}) + '%;'">
+              </div>
+            </div>
+          </div>
+        </div>
+        <hr class="my-4 theme-border"/>
+        <div class="d-flex justify-content-between theme-text fw-bold" style="font-size: .9rem;">
+          <span>Active: <strong th:text="${activeCount ?: 0}" class="text-success"></strong></span>
+          <span>Inactive: <strong th:text="${inactiveCount ?: 0}" class="text-danger"></strong></span>
+          <span>Total: <strong th:text="${totalUsers ?: 0}"></strong></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    
+    <div class="col-lg-6">
+      <div class="chart-card p-0 overflow-hidden d-flex flex-column">
+        <div class="p-3 theme-border border-bottom d-flex justify-content-between align-items-center theme-bg">
+          <span class="fw-bold theme-text"><span class="online-dot me-2"></span>Currently Online</span>
+          <span class="live-badge"><i class="bi bi-broadcast"></i>LIVE</span>
+        </div>
+
+        <div th:if="${onlineUsers == null or onlineUsers.isEmpty()}" class="text-center py-5 small theme-text-muted theme-bg">
+          <i class="bi bi-wifi-off d-block mb-2 fs-3"></i>No users currently online.
+        </div>
+
+        <div th:unless="${onlineUsers == null or onlineUsers.isEmpty()}" class="table-scroll flex-grow-1 theme-bg">
+          <table class="table align-middle admin-table mb-0" style="table-layout: fixed; width: 100%;">
+            <tbody>
+              <tr th:each="u : ${onlineUsers}" th:if="${u != null}">
+                <td class="ps-3 border-0" style="width: 70%;">
+                  <div class="d-flex align-items-center gap-3">
+                    
+                    <div class="user-avatar"
+                         th:classappend="${u.profilePicture == null or u.profilePicture == ''} ? (${u.role != null ? 'role-' + #strings.toLowerCase(u.role.toString()) : 'role-unknown'}) : ''">
+                         <img th:if="${u.profilePicture != null and u.profilePicture != ''}" th:src="@{'/uploads/' + ${u.profilePicture}}" alt="Profile"/>
+                         <span th:unless="${u.profilePicture != null and u.profilePicture != ''}" th:text="${not #strings.isEmpty(u.fullName) ? #strings.substring(u.fullName,0,1).toUpperCase() : 'U'}">U</span>
+                    </div>
+
+                    <div style="min-width: 0; width: 100%;">
+                      <div class="fw-bold theme-text text-truncate" style="font-size:.9rem;" th:text="${u.fullName ?: 'Unknown'}">Name</div>
+                      <div class="text-truncate theme-text-muted" style="font-size:.75rem;" th:text="${u.designation ?: u.department ?: '—'}"></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="pe-3 border-0 text-end" style="width: 30%;">
+                  <span class="badge text-truncate w-100" th:classappend="${u.role != null ? 'role-' + #strings.toLowerCase(u.role.toString()) : 'role-unknown'}" th:text="${u.role ?: 'Unknown'}">ROLE</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="chart-card p-0 overflow-hidden d-flex flex-column">
+        <div class="p-3 theme-border border-bottom d-flex justify-content-between align-items-center theme-bg">
+          <span class="fw-bold theme-text"><i class="bi bi-person-plus text-primary me-2"></i>New Users</span>
+        </div>
+
+        <div th:if="${recentUsers == null or recentUsers.isEmpty()}" class="text-center py-5 small theme-text-muted theme-bg">
+          <i class="bi bi-people d-block mb-2 fs-3"></i>No recent users.
+        </div>
+
+        <div th:unless="${recentUsers == null or recentUsers.isEmpty()}" class="table-scroll flex-grow-1 theme-bg">
+          <table class="table align-middle admin-table mb-0" style="table-layout: fixed; width: 100%;">
+            <tbody>
+              <tr th:each="u : ${recentUsers}" th:if="${u != null}">
+                <td class="ps-3 border-0" style="width: 70%;">
+                  <div class="d-flex align-items-center gap-3">
+
+                    <div class="user-avatar"
+                         th:classappend="${u.profilePicture == null or u.profilePicture == ''} ? (${u.role != null ? 'role-' + #strings.toLowerCase(u.role.toString()) : 'role-unknown'}) : ''">
+                         <img th:if="${u.profilePicture != null and u.profilePicture != ''}" th:src="@{'/uploads/' + ${u.profilePicture}}" alt="Profile"/>
+                         <span th:unless="${u.profilePicture != null and u.profilePicture != ''}" th:text="${not #strings.isEmpty(u.fullName) ? #strings.substring(u.fullName,0,1).toUpperCase() : 'U'}">U</span>
+                    </div>
+
+                    <div style="min-width: 0; width: 100%;">
+                      <div class="fw-bold theme-text text-truncate" style="font-size:.9rem;" th:text="${u.fullName ?: 'Unknown'}">Name</div>
+                      <div class="text-truncate theme-text-muted" style="font-size:.75rem;" th:text="${u.email ?: '—'}">email</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="pe-3 border-0 text-end" style="width: 30%;">
+                  <span class="badge text-truncate w-100" th:classappend="${u.role != null ? 'role-' + #strings.toLowerCase(u.role.toString()) : 'role-unknown'}" th:text="${u.role ?: 'Unknown'}">ROLE</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<th:block layout:fragment="page-scripts">
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const gridColor = isDark ? '#334155' : '#e2e8f0';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    
+    const CHART_PALETTE = ['#4154f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#f97316'];
+
+    // 1. Trend Line Chart
+    const trendCtx = document.getElementById('trendChart');
+    if(trendCtx) {
+        let tLabels = [], tValues = [];
+        document.querySelectorAll('.trend-item').forEach(pt => {
+            const dt = new Date(pt.getAttribute('data-key'));
+            tLabels.push(dt.toLocaleDateString('en-IN', { month:'short', day:'numeric' }));
+            tValues.push(parseInt(pt.getAttribute('data-val')) || 0);
+        });
+        if(tLabels.length === 0) {
+            document.getElementById('trendChartContainer').innerHTML = '<div class="text-center py-5 small" style="color:var(--admin-text-muted);">No trend data available.</div>';
+        } else {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: { labels: tLabels, datasets: [{ label: 'Tasks', data: tValues, borderColor: '#4154f1', backgroundColor: 'rgba(65,84,241,0.1)', borderWidth: 3, pointRadius: 4, fill: true, tension: 0.4 }] },
+                options: { 
+                  responsive: true, maintainAspectRatio: false, 
+                  plugins: { legend: { display: false } }, 
+                  scales: { 
+                    y: { beginAtZero: true, grid: { color: gridColor }, ticks: { stepSize: 1, color: textColor } }, 
+                    x: { grid: { display: false }, ticks: { maxRotation: 0, color: textColor } } 
+                  } 
+                }
+            });
+        }
+    }
+
+    // 2. Dept Bar
+    const deptCtx = document.getElementById('deptChart');
+    if(deptCtx) {
+        let dLabels = [], dValues = [], sum = 0;
+        document.querySelectorAll('.dept-item').forEach(pt => {
+            dLabels.push(pt.getAttribute('data-key'));
+            let v = parseInt(pt.getAttribute('data-val')) || 0;
+            dValues.push(v); sum += v;
+        });
+        if(sum === 0) {
+            document.getElementById('deptChartContainer').innerHTML = '<div class="text-center py-5 small" style="color:var(--admin-text-muted);">No department data.</div>';
+        } else {
+            new Chart(deptCtx, {
+                type: 'bar',
+                data: { labels: dLabels, datasets: [{ label: 'Users', data: dValues, backgroundColor: CHART_PALETTE, borderRadius: 6 }] },
+                options: { 
+                  responsive: true, maintainAspectRatio: false, 
+                  plugins: { legend: { display: false } }, 
+                  scales: { 
+                    y: { beginAtZero: true, grid: { color: gridColor }, ticks: { stepSize: 1, color: textColor } },
+                    x: { grid: { display: false }, ticks: { color: textColor } }
+                  } 
+                }
+            });
+        }
+    }
+});
+</script>
+</th:block>
+</body>
+</html>

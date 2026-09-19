@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Register — ProgTrack</title>
+
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
+    <style>
+        /* Base Backgrounds */
+        :root[data-theme="dark"] body, 
+        :root[data-theme="dark"] main { background-color: #0f172a !important; color: #e2e8f0 !important; }
+        
+        /* Login Card */
+        :root[data-theme="dark"] .card { background-color: #1e293b !important; border-color: #334155 !important; box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important; }
+        
+        /* Typography */
+        :root[data-theme="dark"] .card-title, :root[data-theme="dark"] h5, :root[data-theme="dark"] .text-dark { color: #f8fafc !important; }
+        :root[data-theme="dark"] .text-muted { color: #94a3b8 !important; }
+        :root[data-theme="dark"] label { color: #cbd5e1 !important; }
+        
+        /* Logo */
+        :root[data-theme="dark"] .logo span { color: #60a5fa !important; }
+        :root[data-theme="dark"] .logo span span { color: #e2e8f0 !important; } 
+        
+        /* Forms & Inputs */
+        :root[data-theme="dark"] .form-control, :root[data-theme="dark"] .form-select { background-color: #0f172a !important; border: 1px solid #334155 !important; color: #f8fafc !important; }
+        :root[data-theme="dark"] .form-control:focus, :root[data-theme="dark"] .form-select:focus { background-color: #1e293b !important; border-color: #60a5fa !important; box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important; }
+        :root[data-theme="dark"] .input-group-text { background-color: #334155 !important; border-color: #334155 !important; color: #94a3b8 !important; }
+        
+        /* Links */
+        :root[data-theme="dark"] a { color: #60a5fa !important; }
+        :root[data-theme="dark"] a:hover { color: #93c5fd !important; }
+		
+		/* Fix Placeholder Text Visibility in Dark Mode */
+		:root[data-theme="dark"] input::placeholder,
+		:root[data-theme="dark"] textarea::placeholder,
+		:root[data-theme="dark"] ::placeholder { 
+		    color: #94a3b8 !important; 
+		    opacity: 1 !important; 
+		}
+        
+        /* Floating Toggle Button */
+        .floating-theme-toggle { position: fixed; bottom: 25px; right: 25px; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; transition: all 0.3s ease; cursor: pointer; border: none; }
+        :root[data-theme="dark"] .floating-theme-toggle { background-color: #334155 !important; border: 1px solid #475569 !important; color: #f59e0b !important; }
+        :root[data-theme="light"] .floating-theme-toggle { background-color: #fff !important; border: 1px solid #e2e8f0 !important; color: #4154f1 !important; }
+        .floating-theme-toggle:hover { transform: scale(1.1); }
+		
+		:root[data-theme="dark"] .alert-success { background-color: #064e3b !important; color: #6ee7b7 !important; border-color: #047857 !important; }
+        :root[data-theme="dark"] .alert-danger { background-color: #7f1d1d !important; color: #fca5a5 !important; border-color: #b91c1c !important; }
+        :root[data-theme="dark"] .alert-warning { background-color: #78350f !important; color: #fcd34d !important; border-color: #b45309 !important; }
+        :root[data-theme="dark"] .alert-info { background-color: #164e63 !important; color: #67e8f9 !important; border-color: #0e7490 !important; }
+        :root[data-theme="dark"] .btn-close { filter: invert(1) grayscale(100%) brightness(200%) !important; opacity: 1 !important; }
+	</style>
+
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+    <link th:href="@{/assets/vendor/bootstrap/css/bootstrap.min.css}" rel="stylesheet"/>
+    <link th:href="@{/assets/vendor/bootstrap-icons/bootstrap-icons.css}" rel="stylesheet"/>
+    <link th:href="@{/assets/css/style.css}" rel="stylesheet"/>
+    <link th:href="@{/css/progtrack.css}" rel="stylesheet"/>
+</head>
+<body>
+<main>
+    <div class="container">
+        <section class="section register min-vh-100 d-flex flex-column align-items-center justify-content-center py-4">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-6 col-md-8">
+
+                        <div class="d-flex justify-content-center py-4">
+                            <a th:href="@{/}" class="logo d-flex align-items-center w-auto">
+                                <span class="fw-bold fs-3" style="color:#4154f1;">Prog<span style="color:#012970;">Track</span></span>
+                            </a>
+                        </div>
+
+                        <div class="card mb-3 shadow-sm" style="border-radius:12px;">
+                            <div class="card-body p-4">
+                                <div class="pt-2 pb-2">
+                                    <h5 class="card-title text-center fs-3">Apply for an Account</h5>
+                                    <p class="text-center small text-muted">Fill in your details to request system access.</p>
+                                </div>
+
+                                <div class="alert alert-info border-0 d-flex align-items-center p-3 mb-4" role="alert" style="border-radius: 10px;">
+                                    <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                                    <div class="small">
+                                        <strong>Note:</strong> New accounts require administrator approval before you can log in. You will be notified once your application is reviewed.
+                                    </div>
+                                </div>
+
+                                <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    <span th:text="${errorMsg}">Error</span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+
+                                <form th:action="@{/register}" method="post" class="row g-3 needs-validation" enctype="multipart/form-data" novalidate>
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                            <input type="text" name="fullName" class="form-control"
+                                                   placeholder="Your Full Name" required/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                            <input type="email" name="email" class="form-control"
+                                                   placeholder="your@email.com" required/>
+                                        </div>
+                                    </div>
+                                    
+									<div class="col-md-6">
+									    <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+									    <div class="input-group">
+									        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+									        <input type="password" name="password" id="registerPassword" class="form-control border-end-0 shadow-none"
+									               placeholder="Min 6 chars" required minlength="6"/>
+									        <span class="input-group-text bg-transparent border-start-0" onclick="togglePassword(this)" style="cursor: pointer;">
+									            <i class="bi bi-eye-slash text-muted"></i>
+									        </span>
+									    </div>
+									</div>
+                                                                    
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
+                                            <select name="role" class="form-select" required>
+                                                <option value="" disabled selected>Select Role</option>
+                                                <option th:each="r : ${roles}" 
+                                                        th:value="${r.name()}" 
+                                                        th:text="${r.name()}"></option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Phone Number</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                            <input type="text" name="phoneNumber" class="form-control"
+                                                   placeholder="e.g. +1 234 567 8900"/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Designation</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
+                                            <input type="text" name="designation" class="form-control"
+                                                   placeholder="e.g. Software Engineer"/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Department</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-building"></i></span>
+                                            <input type="text" name="department" class="form-control"
+                                                   placeholder="e.g. Engineering"/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Project Group</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-diagram-3"></i></span>
+                                            <input type="text" name="projectGroup" class="form-control"
+                                                   placeholder="e.g. Backend Team"/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-semibold">Profile Picture <span class="text-muted fw-normal" style="font-size: 12px;">(Optional)</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-image"></i></span>
+                                            <input type="file" name="profileImage" class="form-control" accept="image/png, image/jpeg, image/jpg"/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 mt-4">
+                                        <button type="submit" class="btn btn-primary w-100 fw-semibold"
+                                                style="background:#4154f1;border-color:#4154f1;padding:10px;">
+                                            <i class="bi bi-send-check me-2"></i>Submit Registration Request
+                                        </button>
+                                    </div>
+
+                                    <div class="col-12 text-center mt-3">
+                                        <p class="small mb-0 text-muted">
+                                            Already have an account?
+                                            <a th:href="@{/login}" class="fw-bold" style="color:#4154f1;">Sign in here</a>
+                                        </p>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+						<div class="credits text-center text-muted" style="font-size:0.8rem;">
+						    Powered by <strong>3Space Technologies</strong> — ProgTrack v1.0
+						</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<button class="floating-theme-toggle" onclick="toggleAuthTheme()" title="Toggle Dark/Light Mode">
+    <i id="auth-theme-icon" class="bi bi-moon-fill fs-5"></i>
+</button>
+
+<script th:src="@{/assets/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        updateAuthThemeIcon(savedTheme);
+    });
+
+    function toggleAuthTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateAuthThemeIcon(newTheme);
+    }
+	
+	// ── SHOW/HIDE PASSWORD TOGGLE ──
+	    function togglePassword(btn) {
+	        const input = btn.previousElementSibling;
+	        const icon = btn.querySelector('i');
+	        if (input.type === 'password') {
+	            input.type = 'text';
+	            icon.classList.remove('bi-eye-slash');
+	            icon.classList.add('bi-eye');
+	        } else {
+	            input.type = 'password';
+	            icon.classList.remove('bi-eye');
+	            icon.classList.add('bi-eye-slash');
+	        }
+	    }
+
+    function updateAuthThemeIcon(theme) {
+        const icon = document.getElementById('auth-theme-icon');
+        if(theme === 'dark') {
+            icon.className = 'bi bi-sun-fill fs-5';
+        } else {
+            icon.className = 'bi bi-moon-fill fs-5';
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Weekly Reports — ProgTrack</title>
+	<style>
+		/* Popover Dark Mode Fixes */
+		:root[data-theme="dark"] .popover { 
+		    background-color: #1e293b !important; 
+		    border-color: #334155 !important; 
+		}
+		:root[data-theme="dark"] .popover-header { 
+		    background-color: #0f172a !important; 
+		    border-bottom-color: #334155 !important; 
+		    color: #f8fafc !important; 
+		}
+		:root[data-theme="dark"] .popover-body { 
+		    color: #e2e8f0 !important; 
+		}
+		/* Fix Popover Arrow Colors */
+		:root[data-theme="dark"] .bs-popover-auto[data-popper-placement^=top]>.popover-arrow::after, 
+		:root[data-theme="dark"] .bs-popover-top>.popover-arrow::after { border-top-color: #1e293b !important; }
+		:root[data-theme="dark"] .bs-popover-auto[data-popper-placement^=bottom]>.popover-arrow::after, 
+		:root[data-theme="dark"] .bs-popover-bottom>.popover-arrow::after { border-bottom-color: #1e293b !important; }
+		:root[data-theme="dark"] .bs-popover-auto[data-popper-placement^=start]>.popover-arrow::after, 
+		:root[data-theme="dark"] .bs-popover-start>.popover-arrow::after { border-left-color: #1e293b !important; }
+		:root[data-theme="dark"] .bs-popover-auto[data-popper-placement^=end]>.popover-arrow::after, 
+		:root[data-theme="dark"] .bs-popover-end>.popover-arrow::after { border-right-color: #1e293b !important; }
+	</style>
+		
+</head>
+<body>
+<section layout:fragment="content">
+
+    <div class="d-flex flex-column gap-4">
+        
+        <div class="card border-0 shadow-sm mb-0">
+            <div class="card-body p-4">
+                <h5 class="card-title fw-bold text-dark mb-4 pb-2 border-bottom">
+                    <i class="bi bi-cloud-arrow-up-fill me-2 text-success"></i>Submit Weekly Report
+                </h5>
+                
+                <form th:action="@{/workspace/reports/weekly/submit}" method="post" enctype="multipart/form-data" class="row g-4">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Select Week <span class="text-danger">*</span></label>
+                        <input type="week" name="reportWeek" class="form-control bg-light border-0 shadow-none py-2" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Upload File (PDF/DOCX) <span class="text-danger">*</span></label>
+                        <input class="form-control bg-light border-0 shadow-none py-2" type="file" name="file" accept=".pdf,.doc,.docx" required>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-secondary">Notes/Comments for Lead</label>
+                        <textarea name="comments" class="form-control bg-light border-0 shadow-none" rows="2" placeholder="Highlight any blockers or major achievements this week..."></textarea>
+                    </div>
+
+                    <div class="col-12 mt-3 text-end">
+                        <button type="submit" class="btn btn-success fw-bold px-4 py-2 shadow-sm">
+                            <i class="bi bi-send-fill me-2"></i>Submit Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-0">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                    <h5 class="card-title fw-bold text-dark mb-0">
+                        <i class="bi bi-file-earmark-arrow-down-fill me-2 text-primary"></i>Sample Templates
+                    </h5>
+                    <span class="badge bg-info text-dark rounded-pill px-3 py-3 shadow-sm"><i class="bi bi-info-circle-fill me-1"></i>Due Friday by 5:30 PM</span>
+                </div>
+                
+				<p class="text-muted small mb-4" style="line-height: 1.6; text-align: justify;">
+                    Need a fresh copy? Download the official weekly template below. Please ensure you fill out all sections thoroughly, including your primary blockers, daily achievements, and goals for the upcoming week. Once completed locally, export the document as a secure PDF and upload it using the primary submission form above to ensure formatting is preserved for lead review.
+                </p>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 d-flex align-items-center justify-content-between bg-light transition-all shadow-sm h-100">
+                            <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                <i class="bi bi-file-word-fill text-primary fs-2 flex-shrink-0"></i>
+                                <div class="text-truncate">
+                                    <h6 class="mb-0 fw-bold text-dark text-truncate">Weekly_Template.docx</h6>
+                                    <small class="text-muted">Word Document (<span th:text="${wordFileSize ?: '24 KB'}">24 KB</span>)</small>
+                                </div>
+                            </div>
+                            <a th:href="@{/assets/templates/Weekly_Template.docx}" download class="btn btn-sm btn-outline-primary flex-shrink-0 ms-2" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px;" title="Download">
+                                <i class="bi bi-download"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 d-flex align-items-center justify-content-between bg-light transition-all shadow-sm h-100">
+                            <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                <i class="bi bi-file-pdf-fill text-danger fs-2 flex-shrink-0"></i>
+                                <div class="text-truncate">
+                                    <h6 class="mb-0 fw-bold text-dark text-truncate">Weekly_Guide.pdf</h6>
+                                    <small class="text-muted">Instructions (<span th:text="${pdfFileSize ?: '1.2 MB'}">1.2 MB</span>)</small>
+                                </div>
+                            </div>
+                            <a th:href="@{/assets/templates/Weekly_Guide.pdf}" target="_blank" class="btn btn-sm btn-outline-danger flex-shrink-0 ms-2" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px;" title="View Guide">
+                                <i class="bi bi-eye-fill"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>            
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-0">
+            <div class="card-body p-4">
+                <h5 class="card-title fw-bold text-dark mb-3">
+                    <i class="bi bi-clock-history me-2 text-primary"></i>Submission History
+                </h5>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="small fw-bold text-muted text-uppercase py-3 ps-3">Week</th>
+                                <th class="small fw-bold text-muted text-uppercase py-3">Submitted On</th>
+                                <th class="small fw-bold text-muted text-uppercase py-3">Notes</th>
+                                <th class="small fw-bold text-muted text-uppercase py-3">Document</th>
+                                <th class="small fw-bold text-muted text-uppercase py-3 text-center">Status</th>
+                                <th class="small fw-bold text-muted text-uppercase py-3 text-end pe-3">Feedback</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="report : ${weeklyReports}" th:if="${weeklyReports != null and not #lists.isEmpty(weeklyReports)}">
+                                <td class="fw-bold text-dark ps-3 format-week" th:text="${report.period}" style="min-width: 150px;">Week</td>
+                                <td class="small text-muted" th:text="${#temporals.format(report.submittedAt, 'dd MMM yyyy, hh:mm a')}">Date</td>
+                                <td class="small text-muted text-wrap" style="max-width: 300px; line-height: 1.5;" th:text="${report.comments ?: '—'}">Notes</td>
+                                <td>
+                                    <a th:href="@{'/uploads/reports/' + ${report.fileName}}" 
+                                       th:download="'Weekly_Report_' + ${report.period} + (${#strings.endsWith(#strings.toLowerCase(report.fileName), '.pdf')} ? '.pdf' : '.docx')"
+                                       class="btn btn-sm btn-light border text-primary fw-semibold shadow-sm text-nowrap">
+                                        <i th:if="${#strings.endsWith(#strings.toLowerCase(report.fileName), '.pdf')}" class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>
+                                        <i th:unless="${#strings.endsWith(#strings.toLowerCase(report.fileName), '.pdf')}" class="bi bi-file-word-fill me-1 text-primary"></i>
+                                        Download
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge" th:classappend="${report.status != null and report.status.name() == 'REVIEWED' ? 'bg-success' : 'bg-warning text-dark'}" th:text="${report.status != null ? report.status.name() : 'PENDING'}">PENDING</span>
+                                </td>
+								<td class="text-end text-muted small pe-3">
+								    <span th:if="${report.status == null or report.status.name() == 'PENDING'}">-</span>
+								    
+								    <div th:if="${report.status != null and report.status.name() == 'REVIEWED'}" class="d-flex justify-content-end align-items-center gap-2">
+								        
+								        <button th:if="${report.feedback != null}" type="button" class="btn btn-sm btn-outline-info shadow-sm fw-semibold" data-bs-toggle="popover" th:title="${report.reviewerRole != null ? report.reviewerRole + ' Feedback' : 'Feedback'}" th:attr="data-bs-content=${report.feedback}">
+								            <i class="bi bi-chat-text-fill me-1"></i>Read
+								        </button>
+								    </div>
+								</td>
+                            </tr>
+                            
+                            <tr th:if="${weeklyReports == null or #lists.isEmpty(weeklyReports)}">
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 70px; height: 70px;">
+                                        <i class="bi bi-folder-x fs-2 text-secondary opacity-50"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-dark">No weekly reports submitted yet</h6>
+                                    <p class="mb-0 small">Download the template above, fill it out, and submit your first report!</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</section>
+
+<th:block layout:fragment="page-scripts">
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Popovers
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl)
+            });
+
+            // Format "2026-W42" into readable "Week 42, 2026 (Oct 12 - Oct 16)"
+            document.querySelectorAll('.format-week').forEach(el => {
+                const val = el.textContent.trim();
+                if(val.match(/^\d{4}-W\d{2}$/)) {
+                    const year = parseInt(val.substring(0,4));
+                    const week = parseInt(val.substring(6,8));
+                    
+                    // Simple logic to find the Monday of a given ISO week
+                    const simple = new Date(year, 0, 1 + (week - 1) * 7);
+                    const dow = simple.getDay();
+                    const isoStart = simple;
+                    if(dow <= 4) isoStart.setDate(simple.getDate() - simple.getDay() + 1);
+                    else isoStart.setDate(simple.getDate() + 8 - simple.getDay());
+                    
+                    const isoEnd = new Date(isoStart);
+                    isoEnd.setDate(isoStart.getDate() + 4); // Friday
+                    
+                    const opts = { month: 'short', day: 'numeric' };
+                    el.innerHTML = `Week ${week}, ${year} <br><span class="text-muted fw-normal" style="font-size:11px;">(${isoStart.toLocaleDateString('en-US', opts)} - ${isoEnd.toLocaleDateString('en-US', opts)})</span>`;
+                }
+            });
+        });
+    </script>
+</th:block>
+</body>
+</html>

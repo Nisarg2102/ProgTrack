@@ -1,0 +1,87 @@
+{
+  "name": "ProgTrack — Employee Productivity System",
+  "short_name": "ProgTrack",
+  "description": "3Space Employee Productivity & Task Management System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4154f1",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/assets/img/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Daily Tasks",
+      "short_name": "Tasks",
+      "description": "Submit your daily task report",
+      "url": "/tasks/today",
+      "icons": [{ "src": "/assets/img/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Team Chat",
+      "short_name": "Chat",
+      "description": "Open internal chat",
+      "url": "/chat",
+      "icons": [{ "src": "/assets/img/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Leaves",
+      "short_name": "Leaves",
+      "description": "View and apply for leaves",
+      "url": "/leaves/my",
+      "icons": [{ "src": "/assets/img/icons/icon-96x96.png", "sizes": "96x96" }]
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "screenshots": []
+}

@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/base}">
+
+<head>
+    <title th:text="${pageTitle != null ? pageTitle + ' — ProgTrack' : 'Dashboard — ProgTrack'}">Dashboard</title>
+</head>
+
+<body>
+<section layout:fragment="content">
+
+    <!--
+    ██████████████████████████████████████████████████████████████████
+    █  ROLE-CONDITIONAL DASHBOARD DISPATCH                           █
+    █  This single template serves all 5 roles via th:if blocks.    █
+    ██████████████████████████████████████████████████████████████████
+    -->
+
+    <!-- ══════════════════════════════════════════════════════════════
+         INTERN DASHBOARD
+         ══════════════════════════════════════════════════════════════ -->
+    <div sec:authorize="hasRole('INTERN')">
+
+        <!-- KPI Row -->
+        <div class="row">
+
+            <!-- Live Timer Widget -->
+            <div class="col-xxl-4 col-md-6">
+                <div class="card info-card" style="border-left:4px solid #4154f1;">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary fw-semibold">
+                            <i class="bi bi-stopwatch me-2"></i>Live Session Timer
+                        </h5>
+                        <div class="d-flex align-items-center justify-content-between mt-2">
+                            <div>
+                                <div id="live-timer" class="display-6 fw-bold" style="color:#4154f1;font-variant-numeric:tabular-nums;">
+                                    00:00:00
+                                </div>
+                                <small class="text-muted">Time online today</small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-clock-history fs-1 text-primary opacity-25"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height:6px;">
+                            <div class="progress-bar bg-primary" id="day-progress" role="progressbar"
+                                 style="width:0%"></div>
+                        </div>
+                        <small class="text-muted">8h standard workday</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks today -->
+            <div class="col-xxl-4 col-md-6">
+                <div class="card info-card sales-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Today's Tasks <span>| Submitted</span></h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#e0e5ff;">
+                                <i class="bi bi-clipboard-check" style="color:#4154f1;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${stats['todayTaskCount'] ?: 0}">0</h6>
+                                <span th:if="${stats['isTodaySubmitted']}" class="text-success small fw-semibold">
+                                    <i class="bi bi-check-circle"></i> Submitted
+                                </span>
+                                <span th:unless="${stats['isTodaySubmitted']}" class="text-warning small fw-semibold">
+                                    <i class="bi bi-exclamation-circle"></i> Pending
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weekly hours -->
+            <div class="col-xxl-4 col-md-6">
+                <div class="card info-card revenue-card">
+                    <div class="card-body">
+                        <h5 class="card-title">This Week <span>| Hours</span></h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#d1fae5;">
+                                <i class="bi bi-calendar-week" style="color:#059669;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${stats['weekOnlineHours'] ?: '0.0'} + 'h'">0h</h6>
+                                <span class="text-muted small"
+                                      th:text="${stats['weekTaskCount'] ?: 0} + ' task(s) this week'">0 tasks</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!-- End KPI Row -->
+
+        <!-- ── Today's Task Entry Grid ──────────────────────────────────────── -->
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-table me-2 text-primary"></i>
+                                Daily Task Report —
+                                <span th:text="${#temporals.format(today, 'dd MMMM yyyy')}">Today</span>
+                            </h5>
+                            <span th:if="${stats['isTodaySubmitted']}"
+                                  class="badge bg-success fs-6">
+                                <i class="bi bi-check-circle me-1"></i>Submitted
+                            </span>
+                        </div>
+
+                        <!-- Already submitted view -->
+                        <div th:if="${stats['isTodaySubmitted']}" class="alert alert-success">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Today's report has been submitted. You can view your
+                            <a th:href="@{/tasks/history}" class="alert-link">task history</a> anytime.
+                        </div>
+
+                        <!-- Task Grid Form -->
+                        <form th:unless="${stats['isTodaySubmitted']}"
+                              th:action="@{/tasks/submit-daily}" method="post" id="taskGridForm">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <input type="hidden" name="taskDate" th:value="${today}"/>
+
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle" id="taskGrid">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width:40px;">#</th>
+                                            <th>Task Description <span class="text-danger">*</span></th>
+                                            <th style="width:120px;">Category</th>
+                                            <th style="width:110px;">Hours Spent</th>
+                                            <th style="width:140px;">Status</th>
+                                            <th style="width:200px;">Google Doc / Reference</th>
+                                            <th style="width:100px;">Priority</th>
+                                            <th style="width:60px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="taskRows">
+                                        <!-- Dynamic rows added by JS -->
+                                        <tr class="task-row">
+                                            <td class="row-num text-muted">1</td>
+                                            <td>
+                                                <input type="text" name="taskDescription[]"
+                                                       class="form-control form-control-sm border-0 shadow-none"
+                                                       placeholder="Describe what you worked on..." required/>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="taskCategory[]"
+                                                       class="form-control form-control-sm border-0 shadow-none"
+                                                       placeholder="e.g. Dev, QA"/>
+                                            </td>
+                                            <td>
+                                                <input type="number" name="timeSpent[]" min="0" max="24" step="0.25"
+                                                       class="form-control form-control-sm border-0 shadow-none"
+                                                       placeholder="0.5"/>
+                                            </td>
+                                            <td>
+                                                <select name="status[]" class="form-select form-select-sm border-0 shadow-none">
+                                                    <option value="IN_PROGRESS">In Progress</option>
+                                                    <option value="COMPLETED">Completed</option>
+                                                    <option value="PENDING">Pending</option>
+                                                    <option value="BLOCKED">Blocked</option>
+                                                    <option value="REVIEW">In Review</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="url" name="googleDocLink[]"
+                                                       class="form-control form-control-sm border-0 shadow-none"
+                                                       placeholder="https://docs.google.com/..."/>
+                                            </td>
+                                            <td>
+                                                <select name="priority[]" class="form-select form-select-sm border-0 shadow-none">
+                                                    <option value="LOW">Low</option>
+                                                    <option value="MEDIUM" selected>Medium</option>
+                                                    <option value="HIGH">High</option>
+                                                    <option value="CRITICAL">Critical</option>
+                                                </select>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-outline-danger remove-row" style="display:none;">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Grid Controls -->
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="addRowBtn">
+                                    <i class="bi bi-plus-circle me-1"></i>Add Row
+                                </button>
+
+                                <div class="d-flex gap-2 align-items-center">
+                                    <small class="text-muted" id="rowCount">1 task row</small>
+                                    <button type="submit" class="btn btn-success"
+                                            onclick="return validateGrid()">
+                                        <i class="bi bi-send me-2"></i>Submit Today's Report
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div><!-- End Task Grid -->
+
+        <!-- ── Recent Activity (last 5 tasks) ──────────────────────────────── -->
+        <div class="row mt-2" th:if="${not #lists.isEmpty(stats['todayTasks'])}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Today's Submitted Tasks</h5>
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Hours</th>
+                                    <th>Status</th>
+                                    <th>Reference</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="task : ${stats['todayTasks']}">
+                                    <td th:text="${task.taskDescription}">-</td>
+                                    <td th:text="${task.taskCategory ?: '-'}">-</td>
+                                    <td th:text="${task.timeSpent ?: '-'}">-</td>
+                                    <td>
+                                        <span th:class="'badge ' +
+                                            (task.status.name() == 'COMPLETED' ? 'bg-success' :
+                                             task.status.name() == 'IN_PROGRESS' ? 'bg-primary' :
+                                             task.status.name() == 'BLOCKED' ? 'bg-danger' :
+                                             task.status.name() == 'REVIEW' ? 'bg-warning text-dark' : 'bg-secondary')"
+                                              th:text="${task.status}">Status</span>
+                                    </td>
+                                    <td>
+                                        <a th:if="${task.googleDocLink}" th:href="${task.googleDocLink}"
+                                           target="_blank" class="btn btn-sm btn-outline-secondary py-0">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                        <span th:unless="${task.googleDocLink}" class="text-muted">—</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- End INTERN section -->
+
+
+    <!-- ══════════════════════════════════════════════════════════════
+         LEAD DASHBOARD
+         ══════════════════════════════════════════════════════════════ -->
+    <div sec:authorize="hasRole('LEAD')">
+
+        <!-- KPI cards -->
+        <div class="row">
+            <div class="col-xxl-3 col-md-6">
+                <div class="card info-card sales-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Team Size</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#e0e5ff;">
+                                <i class="bi bi-people" style="color:#4154f1;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${stats['teamSize'] ?: 0}">0</h6>
+                                <span class="text-muted small">Active Members</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-md-6">
+                <div class="card info-card revenue-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Today's Submissions</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#d1fae5;">
+                                <i class="bi bi-clipboard-check" style="color:#059669;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${stats['todaySubmissions'] ?: 0}">0</h6>
+                                <span class="text-muted small">Reports filed today</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-md-6">
+                <div class="card info-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Week Tasks</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#fff3cd;">
+                                <i class="bi bi-bar-chart" style="color:#f59e0b;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${stats['totalWeekTasks'] ?: 0}">0</h6>
+                                <span class="text-muted small">This week</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-md-6">
+                <div class="card info-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Pending Leaves</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#fee2e2;">
+                                <i class="bi bi-calendar-x" style="color:#ef4444;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${pendingLeaves != null ? pendingLeaves.size() : 0}">0</h6>
+                                <span class="text-muted small">Awaiting approval</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row">
+            <!-- Team Hours Chart -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Team Hours This Week</h5>
+                        <canvas id="teamHoursChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <!-- Task Status Breakdown -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Task Status Breakdown</h5>
+                        <canvas id="statusPieChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Leave Requests -->
+        <div class="row mt-2" th:if="${pendingLeaves != null && !pendingLeaves.isEmpty()}">
+            <div class="col-12">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning">
+                            <i class="bi bi-calendar-event me-2"></i>Pending Leave Requests
+                        </h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Type</th>
+                                        <th>From</th>
+                                        <th>To</th>
+                                        <th>Days</th>
+                                        <th>Reason</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="leave : ${pendingLeaves}">
+                                        <td>
+                                            <strong th:text="${leave.user.fullName}">Name</strong><br/>
+                                            <small class="text-muted" th:text="${leave.user.designation}">Designation</small>
+                                        </td>
+                                        <td><span class="badge bg-info" th:text="${leave.type}">Type</span></td>
+                                        <td th:text="${#temporals.format(leave.startDate,'dd MMM')}">Date</td>
+                                        <td th:text="${#temporals.format(leave.endDate,'dd MMM')}">Date</td>
+                                        <td th:text="${leave.leaveDays}">1</td>
+                                        <td><small th:text="${#strings.abbreviate(leave.reason ?: '-', 50)}">Reason</small></td>
+                                        <td>
+                                            <div class="d-flex gap-1">
+                                                <form th:action="@{/leaves/approve/{id}(id=${leave.id})}" method="post">
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                                    <button type="submit" class="btn btn-success btn-sm">
+                                                        <i class="bi bi-check"></i>
+                                                    </button>
+                                                </form>
+                                                <form th:action="@{/leaves/reject/{id}(id=${leave.id})}" method="post">
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                                    <button type="submit" class="btn btn-danger btn-sm">
+                                                        <i class="bi bi-x"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <a th:href="@{/leaves/manage}" class="btn btn-sm btn-outline-warning mt-2">
+                            View All Leave Requests <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- End LEAD section -->
+
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CEO / DIRECTOR / ADMIN EXECUTIVE DASHBOARD
+         ══════════════════════════════════════════════════════════════ -->
+    <div sec:authorize="hasAnyRole('CEO','DIRECTOR','ADMIN')">
+
+        <!-- KPI Row -->
+        <div class="row">
+            <div class="col-xxl-3 col-md-6">
+                <div class="card info-card sales-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Employees</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#e0e5ff;">
+                                <i class="bi bi-people-fill" style="color:#4154f1;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${stats['totalActive'] ?: 0}">0</h6>
+                                <span class="text-muted small">Active staff</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-md-6">
+                <div class="card info-card revenue-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Monthly Tasks</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#d1fae5;">
+                                <i class="bi bi-clipboard-data" style="color:#059669;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${stats['monthTaskCount'] ?: 0}">0</h6>
+                                <span class="text-muted small">This month</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-md-6">
+                <div class="card info-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Completion Rate</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#fff3cd;">
+                                <i class="bi bi-graph-up-arrow" style="color:#f59e0b;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${stats['completionRate'] ?: 0} + '%'">0%</h6>
+                                <span class="text-muted small">Tasks completed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-md-6">
+                <div class="card info-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Departments</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="card-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="background:#fee2e2;">
+                                <i class="bi bi-building" style="color:#ef4444;"></i>
+                            </div>
+                            <div class="ps-3">
+                                <h6 th:text="${departments != null ? departments.size() : 0}">0</h6>
+                                <span class="text-muted small">Active depts</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Department Task Distribution (This Month)</h5>
+                        <canvas id="deptBarChart" height="180"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Headcount by Role</h5>
+                        <canvas id="headcountDoughnut" height="180"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Headcount breakdown table -->
+        <div class="row mt-2">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Headcount by Role</h5>
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr><th>Role</th><th>Count</th><th>Share</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="entry : ${stats['headcount']}">
+                                    <td>
+                                        <span th:class="'badge ' +
+                                            (entry.key == 'ADMIN' ? 'bg-dark' :
+                                             entry.key == 'CEO' ? 'bg-danger' :
+                                             entry.key == 'LEAD' ? 'bg-primary' : 'bg-secondary')"
+                                              th:text="${entry.key}">ROLE</span>
+                                    </td>
+                                    <td th:text="${entry.value}">0</td>
+                                    <td>
+                                        <div class="progress" style="height:6px;">
+                                            <div class="progress-bar"
+                                                 th:style="'width:' + (${stats['totalActive']} > 0 ? (${entry.value} * 100 / ${stats['totalActive']}) : 0) + '%'">
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Tasks by Department (This Month)</h5>
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr><th>Department</th><th>Tasks</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="entry : ${stats['departmentTaskCount']}">
+                                    <td th:text="${entry.key}">Dept</td>
+                                    <td>
+                                        <span class="badge bg-primary rounded-pill" th:text="${entry.value}">0</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- End CEO/DIRECTOR/ADMIN section -->
+
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PAGE SCRIPTS
+     ══════════════════════════════════════════════════════════════════ -->
+<th:block layout:fragment="page-scripts">
+<script th:inline="javascript">
+
+// ─── Live Timer (Intern) ──────────────────────────────────────────────────────
+(function() {
+    const timerEl = document.getElementById('live-timer');
+    if (!timerEl) return;
+
+    let totalSeconds = /*[[${elapsedSeconds ?: 0}]]*/ 0;
+
+    function updateDisplay() {
+        const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+        const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+        const s = String(totalSeconds % 60).padStart(2, '0');
+        timerEl.textContent = h + ':' + m + ':' + s;
+
+        const pct = Math.min((totalSeconds / (8 * 3600)) * 100, 100);
+        const bar = document.getElementById('day-progress');
+        if (bar) bar.style.width = pct + '%';
+    }
+
+    updateDisplay();
+    setInterval(() => { totalSeconds++; updateDisplay(); }, 1000);
+
+    // Sync with server every 5 minutes
+    setInterval(() => {
+        fetch('/tasks/api/elapsed-seconds')
+            .then(r => r.json())
+            .then(d => { totalSeconds = d.elapsedSeconds || totalSeconds; })
+            .catch(() => {});
+    }, 300000);
+})();
+
+// ─── Dynamic Task Grid (Intern) ───────────────────────────────────────────────
+(function() {
+    const addBtn = document.getElementById('addRowBtn');
+    if (!addBtn) return;
+
+    const tbody = document.getElementById('taskRows');
+    let rowCount = 1;
+
+    function updateRowNumbers() {
+        const rows = tbody.querySelectorAll('.task-row');
+        rows.forEach((row, i) => {
+            const numEl = row.querySelector('.row-num');
+            if (numEl) numEl.textContent = i + 1;
+            const removeBtn = row.querySelector('.remove-row');
+            if (removeBtn) removeBtn.style.display = rows.length > 1 ? '' : 'none';
+        });
+        const countEl = document.getElementById('rowCount');
+        if (countEl) countEl.textContent = rows.length + ' task row' + (rows.length !== 1 ? 's' : '');
+    }
+
+    addBtn.addEventListener('click', () => {
+        const template = tbody.querySelector('.task-row');
+        const newRow = template.cloneNode(true);
+        newRow.querySelectorAll('input, select').forEach(el => {
+            el.value = el.tagName === 'SELECT' ? el.options[0]?.value || '' : '';
+        });
+        tbody.appendChild(newRow);
+        updateRowNumbers();
+        newRow.querySelector('input[type=text]').focus();
+    });
+
+    tbody.addEventListener('click', e => {
+        if (e.target.closest('.remove-row')) {
+            const row = e.target.closest('.task-row');
+            if (tbody.querySelectorAll('.task-row').length > 1) {
+                row.remove();
+                updateRowNumbers();
+            }
+        }
+    });
+})();
+
+window.validateGrid = function() {
+    const descriptions = document.querySelectorAll('input[name="taskDescription[]"]');
+    let hasContent = false;
+    descriptions.forEach(input => { if (input.value.trim()) hasContent = true; });
+    if (!hasContent) {
+        alert('Please enter at least one task description before submitting.');
+        return false;
+    }
+    return confirm('Submit today\'s report? You can only submit once per day.');
+};
+
+// ─── Chart.js — Lead: Team Hours Bar Chart ─────────────────────────────────
+(function() {
+    const ctx = document.getElementById('teamHoursChart');
+    if (!ctx) return;
+
+    const memberHours = /*[[${stats['memberWeeklyHours']}]]*/ {};
+    const labels = Object.keys(memberHours);
+    const data = Object.values(memberHours);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Hours This Week',
+                data: data,
+                backgroundColor: 'rgba(65,84,241,0.7)',
+                borderColor: '#4154f1',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Hours' } }
+            }
+        }
+    });
+})();
+
+// ─── Chart.js — Lead: Status Pie ───────────────────────────────────────────
+(function() {
+    const ctx = document.getElementById('statusPieChart');
+    if (!ctx) return;
+
+    const statusData = /*[[${stats['statusBreakdown']}]]*/ {};
+    const labels = Object.keys(statusData);
+    const data = Object.values(statusData);
+    const colors = ['#4154f1','#28a745','#ffc107','#dc3545','#17a2b8'];
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{ data: data, backgroundColor: colors }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+})();
+
+// ─── Chart.js — Executive: Department Bar Chart ───────────────────────────────
+(function() {
+    const ctx = document.getElementById('deptBarChart');
+    if (!ctx) return;
+
+    const deptData = /*[[${stats['departmentTaskCount']}]]*/ {};
+    const labels = Object.keys(deptData);
+    const data = Object.values(deptData);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tasks This Month',
+                data: data,
+                backgroundColor: ['#4154f1','#28a745','#ffc107','#dc3545','#17a2b8','#6c757d'],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true } }
+        }
+    });
+})();
+
+// ─── Chart.js — Executive: Headcount Doughnut ────────────────────────────────
+(function() {
+    const ctx = document.getElementById('headcountDoughnut');
+    if (!ctx) return;
+
+    const hcData = /*[[${stats['headcount']}]]*/ {};
+    const labels = Object.keys(hcData);
+    const data = Object.values(hcData);
+    const colors = ['#212529','#dc3545','#ffc107','#4154f1','#6c757d'];
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{ data: data, backgroundColor: colors }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+})();
+
+</script>
+</th:block>
+
+</body>
+</html>

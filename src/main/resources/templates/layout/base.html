@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4154f1" />
+    <title th:text="${pageTitle != null ? pageTitle + ' — ProgTrack' : 'ProgTrack'}">ProgTrack</title>
+
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
+    <style>
+        /* 1. Core Backgrounds and Text */
+        :root[data-theme="dark"] body, 
+        :root[data-theme="dark"] main { 
+            background-color: #0f172a !important; 
+            color: #e2e8f0 !important; 
+        }
+        
+        :root[data-theme="dark"] h1, :root[data-theme="dark"] h2, :root[data-theme="dark"] h3, 
+        :root[data-theme="dark"] h4, :root[data-theme="dark"] h5, :root[data-theme="dark"] h6,
+        :root[data-theme="dark"] .card-title, :root[data-theme="dark"] .pagetitle h1,
+        :root[data-theme="dark"] .text-dark, :root[data-theme="dark"] .text-black,
+        :root[data-theme="dark"] strong, :root[data-theme="dark"] b, :root[data-theme="dark"] .fw-bold,
+        :root[data-theme="dark"] .stat-value { 
+            color: #f8fafc !important; 
+        }
+        
+        :root[data-theme="dark"] .text-muted, :root[data-theme="dark"] .text-secondary,
+        :root[data-theme="dark"] small, :root[data-theme="dark"] .stat-label { 
+            color: #94a3b8 !important; 
+        }
+
+        /* 2. Header & Sidebar (Includes Username fix) */
+        :root[data-theme="dark"] .header, :root[data-theme="dark"] .sidebar { 
+            background-color: #1e293b !important; 
+            border-color: #334155 !important; 
+        }
+        :root[data-theme="dark"] .header .nav-profile span,
+        :root[data-theme="dark"] .header .nav-profile .dropdown-toggle,
+        :root[data-theme="dark"] .header .toggle-sidebar-btn { 
+            color: #f8fafc !important; 
+        }
+        :root[data-theme="dark"] .sidebar-nav .nav-link { 
+            background-color: #334155 !important; 
+            color: #f8fafc !important; 
+        }
+        :root[data-theme="dark"] .sidebar-nav .nav-link.collapsed { 
+            background-color: #1e293b !important; 
+            color: #94a3b8 !important; 
+        }
+        :root[data-theme="dark"] .sidebar-nav .nav-link:hover,
+        :root[data-theme="dark"] .sidebar-nav .nav-link.collapsed:hover { 
+            background-color: #334155 !important; 
+            color: #60a5fa !important; 
+        }
+        :root[data-theme="dark"] .sidebar-nav .nav-link i { color: #60a5fa !important; }
+        :root[data-theme="dark"] .sidebar-nav .nav-link.collapsed i { color: #94a3b8 !important; }
+        :root[data-theme="dark"] .sidebar-nav .nav-content a { color: #94a3b8 !important; }
+        :root[data-theme="dark"] .sidebar-nav .nav-content a:hover,
+        :root[data-theme="dark"] .sidebar-nav .nav-content a.active { color: #60a5fa !important; }
+        :root[data-theme="dark"] .sidebar-nav .nav-content a i { color: #94a3b8 !important; }
+        
+		/* 3. Cards & Background Hacks (Fixes Productivity Cards & Chat Box) */
+		        :root[data-theme="dark"] .card,
+		        :root[data-theme="dark"] .stat-card,
+		        :root[data-theme="dark"] .chart-card,
+		        :root[data-theme="dark"] .filter-bar { 
+		            background-color: #1e293b !important; 
+		            border-right-color: #334155 !important; /* Only force right border */
+		            border-bottom-color: #334155 !important; /* Only force bottom border */
+		            box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important; 
+		        }
+		        
+		        /* 🟢 MAGIC FIX: Protect colorful KPI borders! Only override Top/Left if no custom color exists */
+		        :root[data-theme="dark"] .card:not([style*="border-top"]),
+		        :root[data-theme="dark"] .stat-card:not([style*="border-top"]),
+		        :root[data-theme="dark"] .chart-card:not([style*="border-top"]),
+		        :root[data-theme="dark"] .filter-bar:not([style*="border-top"]) {
+		            border-top-color: #334155 !important;
+		        }
+
+		        :root[data-theme="dark"] .card:not([style*="border-left"]),
+		        :root[data-theme="dark"] .stat-card:not([style*="border-left"]),
+		        :root[data-theme="dark"] .chart-card:not([style*="border-left"]) {
+		            border-left-color: #334155 !important;
+		        }
+		        
+		        /* Catch-all for any element using a 'bg-white' class (Fixes Chat Windows) */
+		        :root[data-theme="dark"] .bg-light { background-color: #0f172a !important; color: #e2e8f0 !important; }
+		        :root[data-theme="dark"] .bg-white, :root[data-theme="dark"] [class*="bg-white"] { background-color: #1e293b !important; color: #f8fafc !important; }
+		        
+		        /* Catch-all for hardcoded inline styles */
+		        :root[data-theme="dark"] [style*="background: white"], :root[data-theme="dark"] [style*="background:white"],
+		        :root[data-theme="dark"] [style*="background-color: white"], :root[data-theme="dark"] [style*="background-color:white"],
+		        :root[data-theme="dark"] [style*="background: #fff"], :root[data-theme="dark"] [style*="background-color: #fff"],
+		        :root[data-theme="dark"] [style*="background: #ffffff"], :root[data-theme="dark"] [style*="background-color: #ffffff"] {
+		            background-color: #1e293b !important; color: #e2e8f0 !important;
+		        }
+
+        /* 4. Chat Contact Lists */
+        :root[data-theme="dark"] .list-group-item { background-color: #1e293b !important; border-color: #334155 !important; color: #f8fafc !important; }
+        :root[data-theme="dark"] .list-group-item:hover { background-color: #334155 !important; }
+        :root[data-theme="dark"] .list-group-item span, :root[data-theme="dark"] .list-group-item p { color: #94a3b8 !important; }
+
+        /* 5. Borders & Lines */
+        :root[data-theme="dark"] .border, :root[data-theme="dark"] .border-bottom, :root[data-theme="dark"] .border-top,
+        :root[data-theme="dark"] .border-end, :root[data-theme="dark"] .border-start, :root[data-theme="dark"] hr { border-color: #334155 !important; }
+
+        /* 6. Forms, Inputs & Search Bar (INCLUDES PLACEHOLDER FIX) */
+        :root[data-theme="dark"] .form-control, :root[data-theme="dark"] .form-select, :root[data-theme="dark"] input, :root[data-theme="dark"] textarea { 
+            background-color: #0f172a !important; border: 1px solid #334155 !important; color: #f8fafc !important; 
+        }
+        :root[data-theme="dark"] .form-control:focus, :root[data-theme="dark"] .form-select:focus {
+            background-color: #1e293b !important; border-color: #60a5fa !important; box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important;
+        }
+        :root[data-theme="dark"] .search-bar input { background-color: #0f172a !important; border: 1px solid #334155 !important; color: #f8fafc !important; }
+        :root[data-theme="dark"] ::placeholder, :root[data-theme="dark"] input::placeholder, :root[data-theme="dark"] textarea::placeholder { color: #94a3b8 !important; opacity: 1 !important; }
+        :root[data-theme="dark"] ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.7; cursor: pointer; }
+		:root[data-theme="dark"] .search-bar i {color: #60a5fa !important; }
+		
+        /* 7. Tables (Includes custom Admin Tables) */
+        :root[data-theme="dark"] .table { border-color: #334155 !important; color: #e2e8f0 !important; }
+        :root[data-theme="dark"] .table-light, :root[data-theme="dark"] .table thead tr th, :root[data-theme="dark"] .table-light th, :root[data-theme="dark"] .admin-table th { 
+            background-color: #0f172a !important; color: #94a3b8 !important; border-color: #334155 !important; 
+        }
+        :root[data-theme="dark"] .table tbody tr td, :root[data-theme="dark"] .admin-table td { background-color: transparent !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+        :root[data-theme="dark"] .table-hover tbody tr:hover td, :root[data-theme="dark"] .admin-table tr:hover td { background-color: #334155 !important; }
+
+		
+		
+        /* 8. Dropdowns & Modals */
+        :root[data-theme="dark"] .dropdown-menu, :root[data-theme="dark"] .modal-content { background-color: #1e293b !important; border: 1px solid #334155 !important; box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important; }
+        :root[data-theme="dark"] .dropdown-item { color: #e2e8f0 !important; }
+        :root[data-theme="dark"] .dropdown-item:hover, :root[data-theme="dark"] .dropdown-menu .notification-item:hover { background-color: #334155 !important; color: #fff !important; }
+        :root[data-theme="dark"] .dropdown-header h6, :root[data-theme="dark"] .dropdown-header span { color: #e2e8f0 !important; }
+        :root[data-theme="dark"] .dropdown-divider { border-top-color: #334155 !important; }
+        :root[data-theme="dark"] .modal-header, :root[data-theme="dark"] .modal-footer { border-color: #334155 !important; }
+        :root[data-theme="dark"] .btn-close { filter: invert(1) grayscale(100%) brightness(200%) !important; opacity: 1 !important; }
+
+        /* 9. Alerts (Success & Error Messages) */
+        :root[data-theme="dark"] .alert-success { background-color: #064e3b !important; color: #6ee7b7 !important; border-color: #047857 !important; }
+        :root[data-theme="dark"] .alert-danger { background-color: #7f1d1d !important; color: #fca5a5 !important; border-color: #b91c1c !important; }
+        :root[data-theme="dark"] .alert-warning { background-color: #78350f !important; color: #fcd34d !important; border-color: #b45309 !important; }
+        :root[data-theme="dark"] .alert-info { background-color: #164e63 !important; color: #67e8f9 !important; border-color: #0e7490 !important; }
+
+        /* 10. Footer */
+        :root[data-theme="dark"] .footer, :root[data-theme="dark"] .footer .copyright, :root[data-theme="dark"] .footer .credits { color: #94a3b8 !important; border-top-color: #334155 !important; }
+        :root[data-theme="dark"] .footer a { color: #60a5fa !important; }
+
+        /* 11. Restore Colorful Text Utilities */
+        :root[data-theme="dark"] .text-primary { color: #60a5fa !important; } 
+        :root[data-theme="dark"] .text-success { color: #4ade80 !important; } 
+        :root[data-theme="dark"] .text-warning { color: #facc15 !important; } 
+        :root[data-theme="dark"] .text-danger  { color: #f87171 !important; } 
+        :root[data-theme="dark"] .text-info    { color: #22d3ee !important; } 
+        :root[data-theme="dark"] .text-secondary { color: #cbd5e1 !important; }
+        
+        /* 12. Fix Light Buttons (View Detailed History, Reset, etc.) */
+        :root[data-theme="dark"] .btn-light,
+        :root[data-theme="dark"] .btn-white,
+        :root[data-theme="dark"] .btn-outline-secondary {
+            background-color: #334155 !important;
+            border-color: #475569 !important;
+            color: #f8fafc !important;
+        }
+        :root[data-theme="dark"] .btn-light:hover,
+        :root[data-theme="dark"] .btn-white:hover,
+        :root[data-theme="dark"] .btn-outline-secondary:hover {
+            background-color: #475569 !important;
+            color: #fff !important;
+        }
+        :root[data-theme="dark"] .btn-light.text-primary, :root[data-theme="dark"] .btn-light .text-primary { color: #60a5fa !important; }
+        :root[data-theme="dark"] .btn-light.text-dark { color: #f8fafc !important; }
+
+        /* Misc Utilities */
+        :root[data-theme="dark"] .logo span { color: #60a5fa !important; }
+        :root[data-theme="dark"] .nav-icon { color: #e2e8f0 !important; }
+        :root[data-theme="dark"] .progress { background-color: #334155 !important; }
+		
+		/* 13. Fix Table Footers (Attendance Totals) */
+		        :root[data-theme="dark"] .table tfoot, 
+		        :root[data-theme="dark"] .table tfoot td,
+		        :root[data-theme="dark"] .table tfoot th { 
+		            background-color: #0f172a !important; 
+		            color: #f8fafc !important; 
+		            border-top-color: #334155 !important;
+		        }
+				
+				/* 14. Admin Dashboard Fixes (Quick Actions, KPI Colors & Labels) */
+				        
+				        /* Fix unreadable KPI Labels */
+				        :root[data-theme="dark"] .stat-label { color: #94a3b8 !important; }
+
+				        /* Force Quick Actions to Dark Mode */
+				        :root[data-theme="dark"] .quick-action {
+				            background-color: #1e293b !important;
+				            border-color: #334155 !important;
+				            color: #f8fafc !important;
+				        }
+				        :root[data-theme="dark"] .quick-action:hover {
+				            background-color: #334155 !important;
+				            border-color: #60a5fa !important;
+				            color: #60a5fa !important;
+				        }
+
+				        /* Keep KPI Values Colorful in Dark Mode! */
+				        :root[data-theme="dark"] .stat-card.primary .stat-value { color: #60a5fa !important; } /* Bright Blue */
+				        :root[data-theme="dark"] .stat-card.success .stat-value { color: #4ade80 !important; } /* Bright Green */
+				        :root[data-theme="dark"] .stat-card.info .stat-value    { color: #22d3ee !important; } /* Bright Cyan */
+				        :root[data-theme="dark"] .stat-card.purple .stat-value  { color: #a78bfa !important; } /* Bright Purple */
+				        :root[data-theme="dark"] .stat-card.warning .stat-value { color: #facc15 !important; } /* Bright Yellow */
+				        :root[data-theme="dark"] .stat-card.danger .stat-value  { color: #f87171 !important; } /* Bright Red */
+				        
+				        /* Make the faint corner circles slightly more visible in dark mode */
+				        :root[data-theme="dark"] .stat-card::after { opacity: 0.15 !important; }
+    
+						/* 15. Header Notification Dropdown Dark Mode */
+						        :root[data-theme="dark"] .notifications { background-color: #1e293b !important; border-color: #334155 !important; }
+						        :root[data-theme="dark"] .notifications .notification-item { background-color: transparent !important; }
+						        :root[data-theme="dark"] .notifications .notification-item h4 { color: #f8fafc !important; }
+						        :root[data-theme="dark"] .notifications .notification-item p { color: #94a3b8 !important; }
+						        :root[data-theme="dark"] .notifications .notification-item:hover { background-color: #334155 !important; }
+						        :root[data-theme="dark"] .notifications .dropdown-header { color: #e2e8f0 !important; background-color: #1e293b !important; border-bottom: 1px solid #334155 !important; }
+						        :root[data-theme="dark"] .notifications .dropdown-footer { border-top: 1px solid #334155 !important; }
+						        :root[data-theme="dark"] .notifications .dropdown-footer a { color: #60a5fa !important; }
+						        :root[data-theme="dark"] .notifications .dropdown-divider { border-top-color: #334155 !important; }
+								:root[data-theme="dark"] .notifications .dropdown-header a span {color: #e2e8f0 !important;}
+								
+								
+						        /* 16. Universal Highlight Animation (For redirected Notifications) */
+						        @keyframes highlightFadeLight { 
+						            0% { background-color: #dbeafe; } 
+						            100% { background-color: transparent; } 
+						        }
+						        @keyframes highlightFadeDark { 
+						            0% { background-color: rgba(59, 130, 246, 0.4); } 
+						            100% { background-color: transparent; } 
+						        }
+						        
+						        .highlight-row { animation: highlightFadeLight 3s ease-out forwards; border-radius: 8px; }
+						        :root[data-theme="dark"] .highlight-row { animation: highlightFadeDark 3s ease-out forwards; border-radius: 8px; }
+						
+					</style>
+
+    <link rel="icon" type="image/png" th:href="@{/assets/img/favicon.png}" />
+
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+
+    <link th:href="@{/assets/vendor/bootstrap/css/bootstrap.min.css}" rel="stylesheet" />
+    <link th:href="@{/assets/vendor/bootstrap-icons/bootstrap-icons.css}" rel="stylesheet" />
+    <link th:href="@{/assets/vendor/boxicons/css/boxicons.min.css}" rel="stylesheet" />
+    <link th:href="@{/assets/css/style.css}" rel="stylesheet" />
+
+    <link th:href="@{/css/progtrack.css}" rel="stylesheet" />
+
+    <th:block layout:fragment="page-head"></th:block>
+</head>
+<body>
+
+<th:block th:replace="~{fragments/header :: header}"></th:block>
+
+<th:block th:replace="~{fragments/sidebar :: sidebar}"></th:block>
+
+<main id="main" class="main">
+
+	<div class="pagetitle">
+	        <h1 th:text="${pageTitle ?: 'Dashboard'}">Dashboard</h1>
+	        <nav>
+	            <ol class="breadcrumb">
+	                <li class="breadcrumb-item"><a th:href="@{/}"><i class="bi bi-house-door active"></i></a></li>
+	                
+	                <!-- NEW: This will only appear if you pass 'parentPage' from the controller -->
+	                <li class="breadcrumb-item active" th:if="${parentPage != null}" th:text="${parentPage}">Parent Page</li>
+	                
+	                <li class="breadcrumb-item active" th:text="${pageTitle ?: 'Dashboard'}">Dashboard</li>
+	            </ol>
+	        </nav>
+	    </div>
+
+    <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show mx-0" role="alert">
+        <i class="bi bi-check-circle me-1"></i>
+        <span th:text="${successMsg}">Success</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show mx-0" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        <span th:text="${errorMsg}">Error</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <section class="section">
+        <th:block layout:fragment="content"></th:block>
+    </section>
+
+</main><th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+<script th:src="@{/assets/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/assets/vendor/chart.js/chart.umd.js}"></script>
+<script th:src="@{/assets/js/main.js}"></script>
+
+<script>
+    if (typeof Chart !== 'undefined') {
+        Chart.register({
+            id: 'darkModeFix',
+            // Using beforeLayout applies changes before text and legends are measured and drawn!
+            beforeLayout: function(chart) {
+                var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                var cardBg = isDark ? '#1e293b' : '#fff';
+                var textColor = isDark ? '#94a3b8' : '#666'; 
+                var gridColor = isDark ? '#334155' : 'rgba(0,0,0,0.05)';
+                
+                // Fix Borders
+                chart.data.datasets.forEach(dataset => {
+                    if (chart.config.type === 'doughnut' || chart.config.type === 'pie' || chart.config.type === 'bar') {
+                        dataset.borderColor = cardBg;
+                    }
+                });
+                
+                // Fix Axis Text & Grid
+                if (chart.options.scales) {
+                    if (chart.options.scales.x) {
+                        if(!chart.options.scales.x.ticks) chart.options.scales.x.ticks = {};
+                        chart.options.scales.x.ticks.color = textColor;
+                        if(!chart.options.scales.x.grid) chart.options.scales.x.grid = {};
+                        chart.options.scales.x.grid.color = gridColor;
+                    }
+                    if (chart.options.scales.y) {
+                        if(!chart.options.scales.y.ticks) chart.options.scales.y.ticks = {};
+                        chart.options.scales.y.ticks.color = textColor;
+                        if(!chart.options.scales.y.grid) chart.options.scales.y.grid = {};
+                        chart.options.scales.y.grid.color = gridColor;
+                    }
+                }
+
+                // 🟢 NEW FIX: Force Legend Text Color Before it Draws
+                if (chart.options.plugins && chart.options.plugins.legend) {
+                    if(!chart.options.plugins.legend.labels) chart.options.plugins.legend.labels = {};
+                    chart.options.plugins.legend.labels.color = textColor;
+                }
+            }
+        });
+
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === "data-theme") {
+                    for (var id in Chart.instances) {
+                        Chart.instances[id].update();
+                    }
+                }
+            });
+        });
+        observer.observe(document.documentElement, { attributes: true });
+    }
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const params = new URLSearchParams(window.location.search);
+        const highlightId = params.get('highlight');
+        
+        if (highlightId) {
+            // Find the table row or card with the matching ID
+            const targetEl = document.getElementById('row-' + highlightId);
+            
+            if (targetEl) {
+                // Scroll to it smoothly and center it on the screen
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Apply the fading background color animation
+                targetEl.classList.add('highlight-row');
+            }
+        }
+    });
+</script>
+
+<th:block layout:fragment="page-scripts"></th:block>
+
+</body>
+</html>

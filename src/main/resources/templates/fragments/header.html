@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<header th:fragment="header" id="header" class="header fixed-top d-flex align-items-center">
+
+    <div class="d-flex align-items-center justify-content-between">
+        <a th:href="@{/}" class="logo d-flex align-items-center">
+            <img th:src="@{/assets/img/logo.png}" alt="ProgTrack" onerror="this.style.display='none'" />
+            <span class="d-none d-lg-block fw-bold" style="color:#4154f1;">Prog<span style="color:#012970;">Track</span></span>
+        </a>
+        <i class="bi bi-list toggle-sidebar-btn"></i>
+    </div>
+    
+    <div class="search-bar">
+        <form class="search-form d-flex align-items-center" th:action="@{/tasks/history}" method="get">
+            <input type="text" name="q" placeholder="Search tasks, reports..." title="Enter search keyword">
+            <button type="submit" title="Search"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+    
+    <nav class="header-nav ms-auto">
+       <ul class="d-flex align-items-center"
+            th:with="generalNotifs=${notifications != null ? notifications.?[type.name() != 'CHAT_MESSAGE'] : {}},
+                     chatNotifs=${notifications != null ? notifications.?[type.name() == 'CHAT_MESSAGE'] : {}},
+                     generalUnread=${generalNotifs != null ? generalNotifs.?[!isSeen].size() : 0},
+                     chatUnreadCount=${chatNotifs != null ? chatNotifs.?[!isSeen].size() : 0}">
+
+            <li class="nav-item d-block d-lg-none">
+                <a class="nav-link nav-icon search-bar-toggle" href="#">
+                    <i class="bi bi-search"></i>
+                </a>
+            </li>
+
+            <li class="nav-item pe-1">
+                <a class="nav-link nav-icon" href="#" onclick="toggleTheme(event)" title="Toggle Dark/Light Mode">
+                    <i class="bi bi-moon fs-5" id="theme-icon-dark"></i>
+                    <i class="bi bi-sun fs-5 text-warning" id="theme-icon-light" style="display: none;"></i>
+                </a>
+            </li>
+
+            <li class="nav-item dropdown">
+                <a class="nav-link nav-icon" href="#" data-bs-toggle="dropdown">
+                    <i class="bi bi-bell"></i>
+                    <span id="bell-badge" class="badge bg-danger badge-number" th:text="${generalUnread > 0 ? generalUnread : ''}" th:style="${generalUnread > 0 ? '' : 'display:none;'}"></span>
+                </a>
+
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow notifications notifications-bell">
+                    <li class="dropdown-header">
+                        <span>System Alerts</span>
+                        <a href="#" onclick="markAllReadAjax(event)"><span class="badge rounded-pill bg-primary p-2 ms-2">Mark all read</span></a>
+                    </li>
+                    <li><hr class="dropdown-divider" /></li>
+
+                    <th:block th:each="notif : ${generalNotifs}" th:if="${!notif.isSeen}">
+                        <li class="notification-item d-flex justify-content-between align-items-start" th:id="'dd-notif-' + ${notif.id}">
+                            <a th:href="@{/notifications/click/{id}(id=${notif.id})}" class="d-flex gap-2 text-decoration-none text-dark flex-grow-1">
+                                <i th:class="${notif.type.name().startsWith('LEAVE') ? 'bi bi-calendar-check text-warning' : (notif.type.name() == 'REPORT_DEADLINE_REMINDER' ? 'bi bi-alarm-fill text-danger' : 'bi bi-info-circle text-info')}"></i>
+                                <div>
+                                    <h4 th:text="${notif.message}">Alert</h4>
+                                    <p th:text="${#temporals.format(notif.createdAt, 'dd MMM, HH:mm')}">Time</p>
+                                </div>
+                            </a>
+                            <button type="button" class="btn-close btn-sm ms-2 mt-1 flex-shrink-0" th:data-id="${notif.id}" onclick="dismissSingleNotification(this.getAttribute('data-id'), event)"></button>
+                        </li>
+                        <li th:id="'dd-divider-' + ${notif.id}"><hr class="dropdown-divider" /></li>
+                    </th:block>
+
+                    <li id="empty-notif-msg" th:style="${generalUnread > 0 ? 'display:none;' : ''}">
+                        <div class="text-center py-3 text-muted"><i class="bi bi-bell-slash fs-4"></i><p class="mb-0 mt-1">No alerts</p></div>
+                    </li>
+                    <li class="dropdown-footer"><a th:href="@{/notifications}">Show all notifications</a></li>
+                </ul>
+            </li>
+            
+            <li class="nav-item dropdown">
+                <a class="nav-link nav-icon" href="#" data-bs-toggle="dropdown">
+                    <i class="bi bi-chat-left-text"></i>
+                    <span id="chat-badge" class="badge bg-success badge-number" th:text="${chatUnreadCount > 0 ? chatUnreadCount : ''}" th:style="${chatUnreadCount > 0 ? '' : 'display:none;'}"></span>
+                </a>
+
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow notifications notifications-chat">
+                    <li class="dropdown-header">
+                        <span>Team Messages</span>
+                        <a th:href="@{/chat}"><span class="badge rounded-pill bg-success p-2 ms-2">Open Chat App</span></a>
+                    </li>
+                    <li><hr class="dropdown-divider" /></li>
+
+                    <th:block th:each="notif : ${chatNotifs}" th:if="${!notif.isSeen}">
+                        <li class="notification-item d-flex justify-content-between align-items-start" th:id="'dd-notif-' + ${notif.id}">
+                            <a th:href="@{/notifications/click/{id}(id=${notif.id})}" class="d-flex gap-2 text-decoration-none text-dark flex-grow-1">
+                                <i class="bi bi-chat-dots-fill text-success"></i>
+                                <div>
+                                    <h4 th:text="${notif.message}">Message</h4>
+                                    <p th:text="${#temporals.format(notif.createdAt, 'dd MMM, HH:mm')}">Time</p>
+                                </div>
+                            </a>
+                            <button type="button" class="btn-close btn-sm ms-2 mt-1 flex-shrink-0" th:data-id="${notif.id}" onclick="dismissSingleNotification(this.getAttribute('data-id'), event)"></button>
+                        </li>
+                        <li th:id="'dd-divider-' + ${notif.id}"><hr class="dropdown-divider" /></li>
+                    </th:block>
+
+                    <li id="empty-chat-msg" th:style="${chatUnreadCount > 0 ? 'display:none;' : ''}">
+                        <div class="text-center py-3 text-muted"><i class="bi bi-chat-square-text fs-4"></i><p class="mb-0 mt-1">No new messages</p></div>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="nav-item dropdown pe-3">
+                <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
+                    <img th:if="${user != null && user.profilePicture != null}" th:src="@{/uploads/{pic}(pic=${user.profilePicture})}" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" />
+                    <div th:unless="${user != null && user.profilePicture != null}" class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width:36px;height:36px;font-weight:700;font-size:14px;"><span th:text="${user != null ? user.fullName.substring(0,1).toUpperCase() : 'U'}">U</span></div>
+                    <span class="d-none d-md-block dropdown-toggle ps-2" th:text="${user != null ? user.fullName : 'User'}">User Name</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
+                    <li class="dropdown-header"><h6 th:text="${user != null ? user.fullName : 'User'}">Name</h6><span th:text="${user != null ? user.designation : 'Role'}">Role</span></li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <li><a class="dropdown-item d-flex align-items-center" th:href="@{/profile}"><i class="bi bi-person"></i><span>My Profile</span></a></li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <li><form th:action="@{/logout}" method="post" class="d-inline" id="logout-form"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" /><button type="submit" class="dropdown-item d-flex align-items-center border-0 bg-transparent w-100"><i class="bi bi-box-arrow-right"></i><span>Sign Out</span></button></form></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+    
+    <script>
+        // ── THEME TOGGLE LOGIC ──
+        function toggleTheme(event) {
+            if(event) event.preventDefault();
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const darkIcon = document.getElementById('theme-icon-dark');
+            const lightIcon = document.getElementById('theme-icon-light');
+            if(theme === 'dark') {
+                if(darkIcon) darkIcon.style.display = 'none';
+                if(lightIcon) lightIcon.style.display = 'inline-block';
+            } else {
+                if(darkIcon) darkIcon.style.display = 'inline-block';
+                if(lightIcon) lightIcon.style.display = 'none';
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            updateThemeIcon(savedTheme);
+        });
+
+        // ── NOTIFICATION LOGIC ──
+        function getCsrfToken() {
+            var tokenInput = document.querySelector('#logout-form input[name="_csrf"]');
+            return tokenInput ? tokenInput.value : '';
+        }
+
+        function decrementNavBadgeCount() {
+            // Count Bell Items
+            const bellCount = document.querySelectorAll('.notifications-bell .notification-item').length;
+            const bellBadge = document.getElementById('bell-badge');
+            if(bellBadge) { 
+                bellBadge.textContent = bellCount > 0 ? bellCount : ''; 
+                bellBadge.style.display = bellCount > 0 ? 'inline-block' : 'none'; 
+            }
+            const emptyBell = document.getElementById('empty-notif-msg');
+            if(emptyBell) emptyBell.style.display = bellCount === 0 ? 'block' : 'none';
+
+            // Count Chat Items
+            const chatCount = document.querySelectorAll('.notifications-chat .notification-item').length;
+            const chatBadge = document.getElementById('chat-badge');
+            if(chatBadge) { 
+                chatBadge.textContent = chatCount > 0 ? chatCount : ''; 
+                chatBadge.style.display = chatCount > 0 ? 'inline-block' : 'none'; 
+            }
+            const emptyChat = document.getElementById('empty-chat-msg');
+            if(emptyChat) emptyChat.style.display = chatCount === 0 ? 'block' : 'none';
+        }
+		
+        function dismissSingleNotification(notifId, event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            var item = document.getElementById('dd-notif-' + notifId);
+            var divider = document.getElementById('dd-divider-' + notifId);
+            if (item) item.remove();
+            if (divider) divider.remove();
+            decrementNavBadgeCount();
+
+            var pageCard = document.getElementById('page-notif-' + notifId);
+            if (pageCard) {
+                pageCard.classList.remove('bg-white', 'shadow-sm', 'border-primary', 'border-opacity-25');
+                pageCard.classList.add('bg-light', 'transition-all');
+                
+                var newBadge = pageCard.querySelector('.unread-badge');
+                if (newBadge) newBadge.remove();
+                
+                var readBtn = pageCard.querySelector('.mark-read-btn');
+                if (readBtn) readBtn.remove();
+                
+                var pageBadgeCounter = document.querySelector('.page-counter-badge');
+                if (pageBadgeCounter) {
+                    var currentCount = parseInt(pageBadgeCounter.textContent) || 0;
+                    if (currentCount > 1) {
+                        pageBadgeCounter.textContent = currentCount - 1;
+                    } else {
+                        pageBadgeCounter.remove();
+                    }
+                }
+            }
+
+            fetch('/notifications/mark-read/' + notifId, { 
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': getCsrfToken() }
+            }).catch(e => console.log('Silently failed to mark read on server', e));
+        }
+
+        function markAllReadAjax(event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            document.querySelectorAll('[id^="dd-notif-"], [id^="dd-divider-"]').forEach(el => el.remove());
+            decrementNavBadgeCount(); 
+
+            document.querySelectorAll('.notification-card').forEach(card => {
+                card.classList.remove('bg-white', 'shadow-sm', 'border-primary', 'border-opacity-25');
+                card.classList.add('bg-light');
+                
+                var newBadge = card.querySelector('.unread-badge');
+                if (newBadge) newBadge.remove();
+                
+                var readBtn = card.querySelector('.mark-read-btn');
+                if (readBtn) readBtn.remove();
+            });
+            var pageBadge = document.querySelector('.page-counter-badge');
+            if (pageBadge) pageBadge.remove();
+
+            fetch('/notifications/mark-all-read', { method: 'GET' })
+                .catch(e => console.log('Silently failed to mark all read on server', e));
+        }
+
+        // ── THE MAGIC "IMPLICIT READ" AUTO-SCANNER ──
+        document.addEventListener("DOMContentLoaded", () => {
+            const currentPath = window.location.pathname;
+            const autoReadPaths = ['/leaves/manage', '/leaves/my', '/chat/conversation', '/workspace/reports/weekly', '/workspace/reports/monthly'];
+            
+            const isAutoReadPage = autoReadPaths.some(path => currentPath.startsWith(path));
+
+            if (isAutoReadPage) {
+                let itemsRemoved = false;
+                document.querySelectorAll('.notifications .notification-item a').forEach(link => {
+                    let actionUrl = link.getAttribute('data-url');
+                    
+                    if (actionUrl && actionUrl.startsWith(currentPath)) {
+                        let notifId = link.getAttribute('data-id');
+                        if (notifId) {
+                            fetch('/notifications/mark-read/' + notifId, {
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': getCsrfToken() }
+                            });
+                            
+                            let item = document.getElementById('dd-notif-' + notifId);
+                            let divider = document.getElementById('dd-divider-' + notifId);
+                            if (item) item.remove();
+                            if (divider) divider.remove();
+                            itemsRemoved = true;
+                        }
+                    }
+                });
+
+                if (itemsRemoved) {
+                    decrementNavBadgeCount();
+                }
+            }
+        });
+    </script>
+
+</header>
+</body>
+</html>

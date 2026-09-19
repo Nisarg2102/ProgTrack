@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Task History — ProgTrack</title>
+	<style>
+	    @keyframes highlightPulse {
+	      0% { background-color: rgba(65, 84, 241, 0.25); }
+	      100% { background-color: transparent; }
+	    }
+	    .highlighted-row td {
+	      animation: highlightPulse 3s ease-out;
+	    }
+	  </style>
+</head>
+<body>
+<section layout:fragment="content">
+
+  <!-- ── 1. FILTER BAR ─────────────────────────────────────────────────────── -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex align-items-center mb-3">
+         <i class="bi bi-funnel-fill text-primary fs-5 me-2"></i>
+         <h6 class="fw-bold mb-0 text-dark">Filter Task History</h6>
+      </div>
+      
+      <form th:action="@{/tasks/history}" method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small fw-bold text-secondary mb-1" style="letter-spacing: 0.5px;">START DATE</label>
+          <!-- Safe Binding: Will not crash if data is missing -->
+          <input type="date" name="from" class="form-control shadow-none bg-light border-0 py-2"
+                 th:value="${from}"/>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-bold text-secondary mb-1" style="letter-spacing: 0.5px;">END DATE</label>
+          <!-- Safe Binding: Will not crash if data is missing -->
+          <input type="date" name="to" class="form-control shadow-none bg-light border-0 py-2"
+                 th:value="${to}"/>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+          <button type="submit" class="btn btn-primary fw-bold shadow-sm flex-grow-1 py-2">
+            <i class="bi bi-filter me-1"></i> Apply Filter
+          </button>
+          <a th:href="@{/tasks/history}" class="btn btn-light border text-secondary fw-bold shadow-sm d-flex align-items-center justify-content-center" title="Clear Filters" style="width: 45px;">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </a>
+          <a th:href="@{/tasks/today}" class="btn btn-success fw-bold shadow-sm d-flex align-items-center px-4">
+            <i class="bi bi-plus-lg me-1"></i> Today
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── 2. SUMMARY STRIP (KPIs) ───────────────────────────────────────────── -->
+  <div class="row g-4 mb-4">
+    
+    <!-- Card 1: Total Entries -->
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #4154f1 !important;">
+        <div class="card-body d-flex align-items-center p-4">
+          <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+            <i class="bi bi-list-ul text-primary fs-4"></i>
+          </div>
+          <div>
+            <h3 class="fw-bold text-dark mb-0" th:text="${tasks != null ? #lists.size(tasks) : 0}">0</h3>
+            <small class="text-muted fw-semibold text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Total Entries Found</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Completed Tasks (Dynamically Calculated) -->
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #198754 !important;">
+        <div class="card-body d-flex align-items-center p-4">
+          <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+            <i class="bi bi-check-circle-fill text-success fs-4"></i>
+          </div>
+          <div>
+            <h3 class="fw-bold text-dark mb-0" th:text="${tasks != null ? #lists.size(tasks.?[status != null and status.toString() == 'COMPLETED']) : 0}">0</h3>
+            <small class="text-muted fw-semibold text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Completed Tasks</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card 3: Active / Pending Tasks (Dynamically Calculated) -->
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #ffc107 !important;">
+        <div class="card-body d-flex align-items-center p-4">
+          <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+            <i class="bi bi-hourglass-split text-warning fs-4"></i>
+          </div>
+          <div>
+            <!-- Safely counts only tasks that are IN_PROGRESS, PENDING, or REVIEW -->
+            <h3 class="fw-bold text-dark mb-0" th:text="${tasks != null ? #lists.size(tasks.?[status != null and (status.toString() == 'IN_PROGRESS' or status.toString() == 'PENDING' or status.toString() == 'REVIEW')]) : 0}">0</h3>
+            <small class="text-muted fw-semibold text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Active / Pending Tasks</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Total Hours Logged -->
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #0dcaf0 !important;">
+        <div class="card-body d-flex align-items-center p-4">
+          <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+            <i class="bi bi-clock-fill text-info fs-4"></i>
+          </div>
+          <div>
+            <h3 class="fw-bold text-dark mb-0" th:text="${totalHours != null ? totalHours : '0'} + 'h'">0h</h3>
+            <small class="text-muted fw-semibold text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Total Hours Logged</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 5: Critical Priority Tasks (Dynamically Calculated) -->
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #dc3545 !important;">
+        <div class="card-body d-flex align-items-center p-4">
+          <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+            <i class="bi bi-exclamation-triangle-fill text-danger fs-4"></i>
+          </div>
+          <div>
+            <h3 class="fw-bold text-dark mb-0" th:text="${tasks != null ? #lists.size(tasks.?[priority != null and priority.toString() == 'CRITICAL']) : 0}">0</h3>
+            <small class="text-muted fw-semibold text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Critical Priority Tasks</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 6: Blocked Tasks (Dynamically Calculated) -->
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #6c757d !important;">
+        <div class="card-body d-flex align-items-center p-4">
+          <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+            <i class="bi bi-slash-circle-fill text-secondary fs-4"></i>
+          </div>
+          <div>
+            <h3 class="fw-bold text-dark mb-0" th:text="${tasks != null ? #lists.size(tasks.?[status != null and status.toString() == 'BLOCKED']) : 0}">0</h3>
+            <small class="text-muted fw-semibold text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">Blocked Tasks</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
+  <!-- ── 3. TASK TABLE CARD ────────────────────────────────────────────────── -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-0">
+      
+		<!-- Table Header & Search -->
+		      <div class="d-flex flex-wrap justify-content-between align-items-center p-4 border-bottom bg-white rounded-top">
+		        <h5 class="card-title fw-bold text-dark mb-0 m-0 d-flex align-items-center">
+		          <i class="bi bi-clock-history text-primary fs-4 me-2"></i>
+		          Detailed History
+		          <span th:if="${from != null and to != null}" class="text-muted fw-normal ms-2 fs-6" 
+		                th:text="'(' + ${from} + ' to ' + ${to} + ')'"></span>
+		        </h5>
+		        
+		        <div class="d-flex align-items-center gap-3">
+		            <!-- 🟢 EXPORT BUTTON -->
+		            <button type="button" class="btn btn-outline-success fw-bold shadow-sm d-flex align-items-center" onclick="exportTableToCSV('Task_History.csv')">
+		                <i class="bi bi-file-earmark-excel-fill me-2"></i>Export
+		            </button>
+		            
+		            <!-- Live Search Bar -->
+		            <div class="input-group" style="width: 250px;">
+		              <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
+		              <input type="search" id="taskSearch" class="form-control bg-light border-0 shadow-none" placeholder="Search tasks...">
+		            </div>
+		        </div>
+		      </div>
+
+      <!-- Empty State -->
+      <div th:if="${tasks == null or #lists.isEmpty(tasks)}" class="text-center text-muted py-5 my-4">
+        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 80px; height: 80px;">
+            <i class="bi bi-inbox fs-1 text-secondary opacity-50"></i>
+        </div>
+        <h5 class="fw-bold text-dark">No tasks found</h5>
+        <p class="mb-3">We couldn't find any task reports for the selected date range.</p>
+        <a th:href="@{/tasks/today}" class="btn btn-primary fw-bold px-4 shadow-sm">Log Today's Tasks</a>
+      </div>
+
+      <!-- Populated Table -->
+      <div th:unless="${tasks == null or #lists.isEmpty(tasks)}" class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="historyTable">
+          <thead class="table-light">
+            <tr>
+              <th class="border-bottom-0 text-muted small fw-bold text-uppercase py-3 text-center">Date</th>
+              <th class="border-bottom-0 text-muted small fw-bold text-uppercase py-3 text-center">Description</th>
+              <th class="border-bottom-0 text-muted small fw-bold text-uppercase py-3 text-center">Category</th>
+              <th class="border-bottom-0 text-muted small fw-bold text-uppercase py-3 text-center">Hours</th>
+              <th class="text-center border-bottom-0 text-muted small fw-bold text-uppercase py-3">Status</th>
+              <th class="text-center border-bottom-0 text-muted small fw-bold text-uppercase py-3">Priority</th>
+              <th class="text-center border-bottom-0 text-muted small fw-bold text-uppercase py-3">Link</th>
+              <th class="text-center pe-4 border-bottom-0 text-muted small fw-bold text-uppercase py-3">Filed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- BULLETPROOF LOOP: Completely avoids methods that crash on bad data -->
+			<!-- Update your <tr> tag to include the dynamic ID -->
+			<tr th:each="t : ${tasks}" th:id="'task-row-' + ${t.id}">
+              
+              <!-- Date -->
+              <td class="ps-4 small fw-bold text-dark text-nowrap"
+                  th:text="${t.taskDate != null ? #temporals.format(t.taskDate,'EEE, dd MMM yyyy') : '-'}">Date</td>
+                  
+              <!-- Description -->
+              <td class="text-dark" style="text-align: justify !important;" th:text="${t.taskDescription ?: '-'}">Desc</td>
+              
+              <!-- Category -->
+              <td class="small text-secondary fw-semibold" th:text="${t.taskCategory ?: '—'}">Cat</td>
+              
+              <!-- Hours -->
+              <td class="small fw-bold text-primary text-center" th:text="${t.timeSpent != null ? t.timeSpent + 'h' : '-'}">-</td>
+              
+              <!-- CRASH-PROOF Status Badges -->
+              <td class="text-center">
+                <span th:if="${t.status != null and t.status.toString() == 'COMPLETED'}" class="badge rounded-pill px-3 bg-success">COMPLETED</span>
+                <span th:if="${t.status != null and t.status.toString() == 'IN_PROGRESS'}" class="badge rounded-pill px-3 bg-primary">IN PROGRESS</span>
+                <span th:if="${t.status != null and t.status.toString() == 'PENDING'}" class="badge rounded-pill px-3 bg-warning text-dark">PENDING</span>
+                <span th:if="${t.status != null and t.status.toString() == 'BLOCKED'}" class="badge rounded-pill px-3 bg-danger">BLOCKED</span>
+                <span th:if="${t.status != null and t.status.toString() == 'REVIEW'}" class="badge rounded-pill px-3 bg-info text-dark">REVIEW</span>
+                <span th:if="${t.status == null}" class="badge rounded-pill px-3 bg-secondary">-</span>
+              </td>
+              
+              <!-- CRASH-PROOF Priority Badges -->
+              <td class="text-center">
+                <span th:if="${t.priority != null and t.priority.toString() == 'CRITICAL'}" class="badge bg-danger">CRITICAL</span>
+                <span th:if="${t.priority != null and t.priority.toString() == 'HIGH'}" class="badge bg-warning text-dark">HIGH</span>
+                <span th:if="${t.priority != null and t.priority.toString() == 'MEDIUM'}" class="badge bg-primary">MEDIUM</span>
+                <span th:if="${t.priority != null and t.priority.toString() == 'LOW'}" class="badge bg-light text-dark border">LOW</span>
+                <span th:if="${t.priority == null}" class="badge bg-secondary">-</span>
+              </td>
+              
+              <!-- Link -->
+              <td class="text-center">
+                <a th:if="${t.googleDocLink != null and !t.googleDocLink.isEmpty()}" th:href="${t.googleDocLink}" target="_blank"
+                   class="btn btn-sm btn-light border text-primary shadow-sm rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Open Link">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+                <span th:unless="${t.googleDocLink != null and !t.googleDocLink.isEmpty()}" class="text-muted small">—</span>
+              </td>
+              
+              <!-- Filed Checkmark -->
+              <td class="text-center pe-4">
+                <i th:if="${t.submitted != null and t.submitted == true}" class="bi bi-check-circle-fill text-success fs-5" title="Submitted"></i>
+                <i th:unless="${t.submitted != null and t.submitted == true}" class="bi bi-clock-fill text-warning fs-5" title="Draft / Pending"></i>
+              </td>
+              
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- THE CRITICAL FIX: SCRIPT MUST BE WRAPPED IN DOMContentLoaded -->
+<th:block layout:fragment="page-scripts">
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    
+    // 1. Live Search Functionality
+    const searchInput = document.getElementById('taskSearch');
+    if(searchInput) {
+        searchInput.addEventListener('input', function(){
+          const filterText = this.value.toLowerCase().trim();
+          const tableRows = document.querySelectorAll('#historyTable tbody tr');
+          
+          tableRows.forEach(row => {
+            // Grab all text content inside the row, normalize it
+            const rowText = row.textContent.toLowerCase();
+            if (rowText.includes(filterText)) {
+                row.style.display = ''; // Show row
+            } else {
+                row.style.display = 'none'; // Hide row
+            }
+          });
+        });
+    }
+	
+	// 2. Read More Highlight & Scroll
+	    const urlParams = new URLSearchParams(window.location.search);
+	    const highlightId = urlParams.get('highlight');
+	    
+	    if (highlightId) {
+	        const targetRow = document.getElementById('task-row-' + highlightId);
+	        if (targetRow) {
+	            // Slight delay ensures the table is fully rendered before scrolling
+	            setTimeout(() => {
+	                targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	                targetRow.classList.add('highlighted-row');
+	            }, 300);
+	        }
+	    }
+});
+
+// 3. Export to Excel (CSV) Function
+    window.exportTableToCSV = function(filename) {
+        var csv = [];
+        var rows = document.querySelectorAll("#historyTable tr");
+        
+        // Loop through all rows
+        for (var i = 0; i < rows.length; i++) {
+            // Skip rows hidden by the live search filter!
+            if (rows[i].style.display === 'none') continue;
+            
+            var row = [], cols = rows[i].querySelectorAll("td, th");
+            
+            // Only export the first 6 data columns (skips the Link and Filed icons)
+            var colLimit = Math.min(cols.length, 6); 
+            
+            for (var j = 0; j < colLimit; j++) {
+                // Clean the text to prevent Excel formatting breaks
+                var data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, " ").trim();
+                // Escape double quotes
+                data = data.replace(/"/g, '""');
+                row.push('"' + data + '"');
+            }
+            csv.push(row.join(","));
+        }
+
+        downloadCSV(csv.join("\n"), filename);
+    };
+
+    function downloadCSV(csv, filename) {
+        var csvFile = new Blob([csv], {type: "text/csv"});
+        var downloadLink = document.createElement("a");
+        downloadLink.download = filename;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+</script>
+</th:block>
+</body>
+</html>
