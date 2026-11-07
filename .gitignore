@@ -31,3 +31,27 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### macOS ###
+.DS_Store
+**/.DS_Store
+
+### Java / Tar archives ###
+jdk17.tar.gz
+jdk-17*
+
+### Node / MERN Stack ###
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.env
+**/.env
+.env.local
+**/.env.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### Local uploads ###
+uploads/
